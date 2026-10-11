@@ -1,0 +1,27 @@
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+
+# --- 1C build artifacts / run debris ---
+*.epf
+*.erf
+*.cf
+*.cfe
+.build/
+tmp/
+logs/
+allure-results/
+allure-report/
+tests/logs/
+vap_*.json
+va_*.log
+
+# --- creds / local ---
+.its_creds.txt
+*.env
+heartbeat/
+
+# --- OS ---
+Thumbs.db
+Desktop.ini
