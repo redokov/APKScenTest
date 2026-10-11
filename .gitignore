@@ -17,6 +17,12 @@ tests/logs/
 vap_*.json
 va_*.log
 
+# --- wiki Vanessa: локальная база знаний, НЕ коммитится (лицензионная чистота) ---
+wiki/
+
+# --- сгенерированные прогоны (feature с подставленными данными, фикстуры) ---
+tests/run-*/
+
 # --- creds / local ---
 .its_creds.txt
 *.env
