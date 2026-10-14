@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "comment": "Настройки обработки АпкПодготовкаСценарныхТестов. Перенос на другую базу = правка этого файла (NFR-004).",
+  "infoBase": "Srvr=\"localhost\";Ref=\"dev_erpapk_demo\"",
+  "v8cPath": "C:\\Program Files\\1cv8\\8.5.4.1683\\bin\\1cv8c.exe",
+  "vaEpfPath": "C:\\MyProjects\\APKTechPlan\\tests\\vanessa\\vanessa-automation-single.epf",
+  "projectDir": "C:\\MyProjects\\APKScenTest",
+  "templatesDir": "tests/templates",
+  "smokeTemplate": "00-smoke",
+  "coverageMapPath": "tests/coverage-map.json",
+  "runsBaseDir": "tests",
+  "adminUser": "Администратор",
+  "adminPassword": "",
+  "timeoutMinutesPerBatch": 10,
+  "portBase": 48000,
+  "maxTabularRows": 3
+}

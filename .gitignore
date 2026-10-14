@@ -31,3 +31,7 @@ heartbeat/
 # --- OS ---
 Thumbs.db
 Desktop.ini
+# --- VanessaExt binaries (не нужны: компонента встроена в single-epf) ---
+vendor/
+# --- pi agent local state ---
+.pi/
