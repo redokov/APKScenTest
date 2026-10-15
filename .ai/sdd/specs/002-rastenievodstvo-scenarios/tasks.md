@@ -95,18 +95,18 @@
 **Priority:** P0 · **Estimate:** 1h · **Dependencies:** T1 · **Covers:** FR-002
 
 ### Work
-- [ ] `tests/templates/04-fuel-sheet.feature`: шапка + ТЧ ГСМ по образцу
+- [x] `tests/templates/04-fuel-sheet.feature`: шапка + ТЧ ГСМ по образцу
       (dropdown МаркаТоплива, Количество)
-- [ ] Probe-раннер + итерации до rs=0
+- [x] Probe-раннер + итерации до rs=0
 
 ### Acceptance Criteria
-- [ ] Probe rs=0; документ проводится
+- [x] Probe rs=0; документ проводится
 
 ### Files
 - `tests/templates/04-fuel-sheet.feature`, `scripts/s2_probe_fuel_run.py`
 
 ### Verification
-- [ ] Probe-прогон ReturnStatus=0 (два раза подряд)
+- [x] Probe-прогон ReturnStatus=0 (два раза подряд: run10, run11)
 
 ## Task T4: Шаблон 05-weighing + probe
 **Priority:** P0 · **Estimate:** 1h · **Dependencies:** T1 · **Covers:** FR-003
