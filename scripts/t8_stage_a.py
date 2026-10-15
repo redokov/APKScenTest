@@ -22,6 +22,7 @@ STAGE_A_EPF = os.path.join(ROOT, "tmp", "t8", "epf", "АпкРаннер.epf")
 STAGE_A_TASK = os.path.join(ROOT, "tmp", "t8", "runner_task.json")
 STAGE_A_RESULT = os.path.join(ROOT, "tmp", "t8", "runner_result.json")
 STAGE_A_LOG = os.path.join(ROOT, "tmp", "t8", "client-a.log")
+FILTERS_FILE = os.path.join(ROOT, "tmp", "t8", "filters.json")
 TIMEOUT_STAGE_A = 900
 
 WATCHDOG_PS = r"""
@@ -98,8 +99,11 @@ def run_1c_session(runner_epf, timeout, client_log, result_file=None):
 
 def main():
     with io.open(STAGE_A_TASK, "w", encoding="utf-8") as f:
-        json.dump({"target": TARGET, "settings": SETTINGS, "runsDir": RUNS_DIR},
-                  f, ensure_ascii=False)
+        task = {"target": TARGET, "settings": SETTINGS, "runsDir": RUNS_DIR}
+        if os.path.exists(FILTERS_FILE):
+            task["filters"] = FILTERS_FILE
+            print("[stage-a] filters: " + FILTERS_FILE)
+        json.dump(task, f, ensure_ascii=False)
     if os.path.exists(STAGE_A_RESULT):
         os.remove(STAGE_A_RESULT)
     wd_ps = WATCHDOG_PS.replace("{duration}", str(TIMEOUT_STAGE_A + 60)).replace(

@@ -72,24 +72,24 @@
 **Priority:** P0 · **Estimate:** 2h · **Dependencies:** T1 · **Covers:** FR-001
 
 ### Work
-- [ ] `tests/templates/02-pl-auto.feature`: по playbook 01-pl-tractor
+- [x] `tests/templates/02-pl-auto.feature`: по playbook 01-pl-tractor
       (e1cib/data, dropdown «по строке», ТипЗатрат «с выбором» при наличии,
       UIA-двойной клик для Аналитики если колонка есть)
-- [ ] Проверка Form.xml: наличие/отсутствие Аналитика Расходов у
+- [x] Проверка Form.xml: наличие/отсутствие Аналитика Расходов у
       автотранспортного ПЛ (design §3.1)
-- [ ] Probe-раннер `scripts/s2_probe*_run.py` (образец t8_probe6m2_run.py,
+- [x] Probe-раннер `scripts/s2_probe*_run.py` (образец t8_probe6m2_run.py,
       порты 487xx, флаги: Мышки=Ложь)
-- [ ] Итерации probe до стабильного ReturnStatus=0
+- [x] Итерации probe до стабильного ReturnStatus=0
 
 ### Acceptance Criteria
-- [ ] Probe rs=0; шаблон генерирует фичу без unresolved-плейсхолдеров
-- [ ] Фича проводит документ-представителя
+- [x] Probe rs=0; шаблон генерирует фичу без unresolved-плейсхолдеров
+- [x] Фича проводит документ-представителя
 
 ### Files
 - `tests/templates/02-pl-auto.feature`, `scripts/s2_probe_plauto_run.py`
 
 ### Verification
-- [ ] Probe-прогон ReturnStatus=0 (два раза подряд)
+- [x] Probe-прогон ReturnStatus=0 (два раза подряд)
 
 ## Task T3: Шаблон 04-fuel-sheet + probe
 **Priority:** P0 · **Estimate:** 1h · **Dependencies:** T1 · **Covers:** FR-002
