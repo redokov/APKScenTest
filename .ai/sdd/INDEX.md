@@ -27,7 +27,7 @@
 | ID | Feature | Status | Requirements | Design | Tasks | Review |
 |----|---------|--------|--------------|--------|-------|--------|
 | 001 | Обработка препроцессинга (preprocessor-epf) | implementation:complete (T1–T9 закрыты 2026-10-15, E2E доказан run-20261015-003718) | `.ai/sdd/specs/001-preprocessor-epf/requirements.md` | `.ai/sdd/specs/001-preprocessor-epf/design.md` | `.ai/sdd/specs/001-preprocessor-epf/tasks.md` | — |
-| 002 | Сценарии растениеводства (rastenievodstvo-scenarios) | implementation:in-progress (T1, T5 закрыты 2026-10-15; следующий — T2, промт: docs/next-session-prompt.md) | `.ai/sdd/specs/002-rastenievodstvo-scenarios/requirements.md` | `.ai/sdd/specs/002-rastenievodstvo-scenarios/design.md` | `.ai/sdd/specs/002-rastenievodstvo-scenarios/tasks.md` | — |
+| 002 | Сценарии растениеводства (rastenievodstvo-scenarios) | implementation:in-progress (T1, T5 закрыты 2026-10-15; следующий — T2 (mid-probe), промт: docs/next-session-prompt.md) | `.ai/sdd/specs/002-rastenievodstvo-scenarios/requirements.md` | `.ai/sdd/specs/002-rastenievodstvo-scenarios/design.md` | `.ai/sdd/specs/002-rastenievodstvo-scenarios/tasks.md` | — |
 
 ## Handoff
 
