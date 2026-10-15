@@ -112,20 +112,21 @@
 **Priority:** P0 · **Estimate:** 1h · **Dependencies:** T1 · **Covers:** FR-003
 
 ### Work
-- [ ] `tests/templates/05-weighing.feature`: шапка (ВидВзвешивания dropdown,
+- [x] `tests/templates/05-weighing.feature`: шапка (ВидВзвешивания dropdown,
       Откуда/Куда, Номенклатура) + ТЧ Талоны
-- [ ] Проверить: вводится ли «Откуда» стандартным dropdown «по строке»
+- [x] Проверить: вводится ли «Откуда» стандартным dropdown «по строке»
       (если форма выбора как у Аналитики — UIA-рецепт, design §3.3)
-- [ ] Probe-раннер + итерации до rs=0
+      [dropdown «по строке» НЕ работает — UIA-рецепт]
+- [x] Probe-раннер + итерации до rs=0
 
 ### Acceptance Criteria
-- [ ] Probe rs=0; документ проводится
+- [x] Probe rs=0; документ проводится
 
 ### Files
-- `tests/templates/05-weighing.feature`, `scripts/s2_probe_weighing_run.py`
+- `tests/templates/05-weighing.feature`, `scripts/s2_probe_weighing_cleanup.py`
 
 ### Verification
-- [ ] Probe-прогон ReturnStatus=0 (два раза подряд)
+- [x] Probe-прогон ReturnStatus=0 (два раза подряд: run12, run13)
 
 ## Task T5: Наряды: сопоставление авторов (research)
 **Priority:** P1 · **Estimate:** 1h · **Dependencies:** none · **Covers:** FR-005 (TD-004)
