@@ -153,21 +153,22 @@
 **Priority:** P1 · **Estimate:** 1h · **Dependencies:** T5 (успех) · **Covers:** FR-005
 
 ### Work
-- [ ] `tests/templates/03-piecework.feature`: шапка (Исполнитель) +
+- [x] `tests/templates/03-piecework.feature`: шапка (Исполнитель) +
       ТЧ Задание (ВидРаботы, Часы/Тонны/Гектары, ТипЗатрат «с выбором»,
       Аналитика по Form.xml)
-- [ ] Probe-раннер + итерации до rs=0
+- [x] Probe-раннер + итерации до rs=0
 - [ ] При провале T5 (нет сопоставимого автора): задача отменяется,
-      фиксация в отчёте
+      фиксация в отчёте [неактуально: T5 успешен]
 
 ### Acceptance Criteria
-- [ ] Probe rs=0; документ проводится
+- [x] Probe rs=0; документ проводится
 
 ### Files
-- `tests/templates/03-piecework.feature`, `scripts/s2_probe_piecework_run.py`
+- `tests/templates/03-piece-work-order.feature` (шаблон = 03-piece-work-order
+  по coverage-map), `scripts/s2_probe_fuel_run.py` (probe-раннер)
 
 ### Verification
-- [ ] Probe-прогон ReturnStatus=0 (два раза подряд)
+- [x] Probe-прогон ReturnStatus=0 (два раза подряд: run19, run20)
 
 ## Task T7: АРМ: разведка форм отражения (research)
 **Priority:** P1 · **Estimate:** 2h · **Dependencies:** none · **Covers:** FR-004 (TD-003)
