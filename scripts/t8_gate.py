@@ -17,6 +17,7 @@
 """
 import glob
 import io
+import datetime
 import json
 import os
 import shutil
@@ -154,6 +155,44 @@ def delete_user(users, name):
     log("[cleanup] %s: пользователь удалён=%s" % (name, find_user(users, name) is None))
 
 
+def cleanup_today_counters(agent):
+    """T9: удаляет записи АпкСчетчикТранспортныхСредств за сегодня.
+
+    Фича 01-pl-tractor при каждом прогоне создаёт НОВЫЙ путевой лист
+    датой «сегодня»; запись счётчика от утреннего прогона
+    (напр., run-T6/T7-эры) даёт коллизию при повторном проведении
+    («Запись с такими ключевыми полями существует»). Регистр
+    подчинён регистратору - удаляем набором записей по Регистратору
+    (записи 17.10.2026 - probe-residue; реальные данные 2015-2023
+    не затрагиваются).
+    """
+    q = agent.NewObject("Query")
+    q.Text = ("ВЫБРАТЬ АпкСчетчикТранспортныхСредств.Регистратор КАК Регистратор "
+              "ИЗ РегистрСведений.АпкСчетчикТранспортныхСредств "
+              "КАК АпкСчетчикТранспортныхСредств "
+              "ГДЕ АпкСчетчикТранспортныхСредств.Период МЕЖДУ &Д1 И &Д2")
+    today = datetime.date.today()
+    d1 = datetime.datetime(today.year, today.month, today.day)
+    d2 = d1 + datetime.timedelta(hours=23, minutes=59, seconds=59)
+    q.УстановитьПараметр("Д1", d1)
+    q.УстановитьПараметр("Д2", d2)
+    sel = q.Execute().Choose()
+    recorders = []
+    while sel.Next():
+        r = sel.Регистратор
+        if r not in recorders:
+            recorders.append(r)
+    rs = agent.РегистрыСведений.АпкСчетчикТранспортныхСредств
+    for rec in recorders:
+        nabor = rs.СоздатьНаборЗаписей()
+        el = nabor.Отбор.Get(0)  # ПутьКДанным = Регистратор
+        el.Значение = rec
+        el.Использование = True
+        nabor.Записать(True)
+    log("[setup] счётчики ТС за сегодня очищены: %d регистраторов" % len(recorders))
+    return len(recorders)
+
+
 def kill_tree(pid):
     subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True)
 
@@ -224,12 +263,17 @@ def restrict_manifest(run_dir, checks):
     files = manifest.get("files") or []
     smoke_src = None
     tractor_src = None
+    arm_entries = []
     for entry in files:
         tmpl = entry.get("template", "")
         if tmpl == "00-smoke" and smoke_src is None:
             smoke_src = entry.get("file", "")
         if tmpl == "01-pl-tractor" and tractor_src is None:
             tractor_src = entry.get("file", "")
+        if tmpl.startswith("arm-") and tmpl != "arm-fuel-expense":
+            f = entry.get("file", "")
+            if f and os.path.exists(f):
+                arm_entries.append((tmpl, f))
     if not smoke_src or not os.path.exists(smoke_src):
         return None, "сгенерированный smoke-файл не найден"
     if not tractor_src or not os.path.exists(tractor_src):
@@ -241,16 +285,28 @@ def restrict_manifest(run_dir, checks):
     shutil.copyfile(smoke_src, smoke_dst)
     shutil.copyfile(tractor_src, tractor_dst)
 
+    restricted_files = [
+        {"file": smoke_dst.replace("\\", "/"), "template": "00-smoke",
+         "user": ZOND1, "scenarios": 1, "documents": []},
+        {"file": tractor_dst.replace("\\", "/"), "template": "01-pl-tractor",
+         "user": ZOND2, "scenarios": 1, "documents": []},
+    ]
+    # T9 (D-001): arm-* шаблоны включаются в прогон зондов round-robin;
+    # arm-fuel-expense отклонён (when=never) и не включается.
+    zonds = (ZOND1, ZOND2)
+    for i, (tmpl, src) in enumerate(arm_entries):
+        zond = zonds[i % 2]
+        dst = os.path.join(fdir, "%s--ApkSct-Zond%d.feature" % (tmpl, i % 2 + 1))
+        shutil.copyfile(src, dst)
+        restricted_files.append(
+            {"file": dst.replace("\\", "/"), "template": tmpl,
+             "user": zond, "scenarios": 1, "documents": []})
+
     restricted = {
         "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "files": [
-            {"file": smoke_dst.replace("\\", "/"), "template": "00-smoke",
-             "user": ZOND1, "scenarios": 1, "documents": []},
-            {"file": tractor_dst.replace("\\", "/"), "template": "01-pl-tractor",
-             "user": ZOND2, "scenarios": 1, "documents": []},
-        ],
+        "files": restricted_files,
         "warnings": [
-            "T8 E2E restriction: батчи ограничены временными пользователями "
+            "T8/T9 E2E restriction: батчи ограничены временными пользователями "
             "(безопасность); реальные авторы плана - pending user confirmation",
         ],
     }
@@ -259,6 +315,7 @@ def restrict_manifest(run_dir, checks):
 
     orig_users = sorted(set(e.get("user", "") for e in files if e.get("user")))
     checks["generatedUsers"] = orig_users
+    checks["armTemplates"] = [t for t, _ in arm_entries]
     checks["restricted"] = True
     return orig_users, None
 
@@ -311,8 +368,14 @@ def main():
             log("[restrict] FAIL: %s" % err)
             return finish(False)
         log("[restrict] манифест ограничен: Зонд1=smoke, Зонд2=01-pl-tractor")
+        log("[restrict] arm-шаблоны в прогоне зондов: %s"
+            % (", ".join(checks.get("armTemplates", [])) or "нет"))
         log("[restrict] реальные авторы (pending user confirmation): %s"
             % "; ".join(orig_users))
+
+        # T9: счётчики ТС «сегодня» от утреннего прогона конфликтуют
+        # с новым путевым листом (независимый РС) - чистим residues
+        cleanup_today_counters(agent)
 
         # --- Stage B: батчи T6-раннером --------------------------------
         # Ретрай: сбой подключения TestClient (rs=2) недетерминирован
@@ -383,17 +446,40 @@ def main():
         log("[stage-c] totals=%s" % json.dumps(data_c.get("totals"), ensure_ascii=False))
         checks["report"] = data_c
 
+        # COM-соединение жило ~30 минут (stage-a/b/c) и может упасть -
+        # для verify/cleanup берём свежее
+        try:
+            agent = win32com.client.Dispatch("V85.COMConnector").Connect(conn_str(ADMIN, ""))
+            users = agent.ПользователиИнформационнойБазы
+        except Exception as e:
+            log("[verify] FAIL: переподключение COM: %s" % str(e)[:150])
+            return finish(False)
+
         # --- Верификация -----------------------------------------------
-        ok = verify(agent, users, checks, data_b, hashes)
+        try:
+            ok = verify(agent, users, checks, data_b, hashes)
+        except Exception as e:
+            log("[verify] FAIL: исключение: %s" % str(e)[:200])
+            ok = False
     finally:
         for name in (ZOND1, ZOND2):
-            try:
-                u = find_user(users, name)
-                if u is not None:
-                    u.Удалить()
-                    log("[cleanup] %s удалён" % name)
-            except Exception as e:
-                log("[cleanup] fail %s: %s" % (name, str(e)[:120]))
+            for attempt in (1, 2):
+                try:
+                    u = find_user(users, name)
+                    if u is not None:
+                        u.Удалить()
+                        log("[cleanup] %s удалён" % name)
+                    break
+                except Exception as e:
+                    if attempt == 2:
+                        log("[cleanup] fail %s: %s" % (name, str(e)[:120]))
+                    else:
+                        try:
+                            agent = win32com.client.Dispatch("V85.COMConnector").Connect(
+                                conn_str(ADMIN, ""))
+                            users = agent.ПользователиИнформационнойБазы
+                        except Exception:
+                            pass
         io.open(GATE_LOG, "w", encoding="utf-8").write("\n".join(log_lines))
     return finish(ok)
 
@@ -471,9 +557,26 @@ def verify(agent, users, checks, data_b, hashes):
     if os.path.exists(summary_md):
         md_text = io.open(summary_md, encoding="utf-8-sig").read()
     check("passed" in md_text.lower(), "summary.md содержит 'passed'")
+
+    # T9: arm-* фичи обязаны присутствовать в манифесте прогона и отчёте
+    rmanifest = read_json(os.path.join(run_dir, "features-manifest.json"))
+    rfiles = (rmanifest or {}).get("files") or []
+    arm_in_manifest = sorted(str(f.get("template", "")) for f in rfiles
+                             if str(f.get("template", "")).startswith("arm-"))
+    check(len(arm_in_manifest) >= 1,
+          "ограниченный манифест содержит arm-шаблоны (%s)"
+          % (", ".join(arm_in_manifest) or "нет"))
+    check("Отражение выработки" in md_text,
+          "summary.md: сценарий АРМ выработки присутствует")
+    check("Отражение заправок" in md_text,
+          "summary.md: сценарий АРМ заправок присутствует")
+
     totals = (summary or {}).get("totals") or {}
-    check(totals.get("passed", 0) >= 2,
-          "totals.passed >=2 (=%s)" % json.dumps(totals, ensure_ascii=False))
+    expected = sum(int(f.get("scenarios") or 0) for f in rfiles)
+    check(expected >= 4, "ожидается не менее 4 сценариев (= %d)" % expected)
+    check(totals.get("passed", 0) >= expected,
+          "totals.passed >= %d (=%s)" % (expected,
+          json.dumps(totals, ensure_ascii=False)))
 
     checks["verify"] = {"scan": len(reps), "users": len(scan_users),
                         "docTypes": sorted(doc_types), "allure": len(allure),
