@@ -270,9 +270,9 @@ def restrict_manifest(run_dir, checks):
             smoke_src = entry.get("file", "")
         if tmpl == "01-pl-tractor" and tractor_src is None:
             tractor_src = entry.get("file", "")
-        if tmpl.startswith("arm-") and tmpl != "arm-fuel-expense":
+        if tmpl.startswith("arm-") and os.path.exists(entry.get("file", "")):
             f = entry.get("file", "")
-            if f and os.path.exists(f):
+            if f:
                 arm_entries.append((tmpl, f))
     if not smoke_src or not os.path.exists(smoke_src):
         return None, "сгенерированный smoke-файл не найден"
@@ -291,12 +291,20 @@ def restrict_manifest(run_dir, checks):
         {"file": tractor_dst.replace("\\", "/"), "template": "01-pl-tractor",
          "user": ZOND2, "scenarios": 1, "documents": []},
     ]
-    # T9 (D-001): arm-* шаблоны включаются в прогон зондов round-robin;
-    # arm-fuel-expense отклонён (when=never) и не включается.
+    # T9: arm-* шаблоны включаются в прогон зондов round-robin;
+    # arm-fuel-expense зависит от закрытого ПЛ тракториста из 01-pl-tractor,
+    # поэтому всегда маршрутизируется в батч Зонд2 (после 01-pl-tractor).
     zonds = (ZOND1, ZOND2)
-    for i, (tmpl, src) in enumerate(arm_entries):
-        zond = zonds[i % 2]
-        dst = os.path.join(fdir, "%s--ApkSct-Zond%d.feature" % (tmpl, i % 2 + 1))
+    zond1_n = 0
+    for tmpl, src in arm_entries:
+        if tmpl == "arm-fuel-expense":
+            zond = ZOND2
+            zond_idx = 1
+        else:
+            zond = zonds[zond1_n % 2]
+            zond_idx = zond1_n % 2
+            zond1_n += 1
+        dst = os.path.join(fdir, "%s--ApkSct-Zond%d.feature" % (tmpl, zond_idx + 1))
         shutil.copyfile(src, dst)
         restricted_files.append(
             {"file": dst.replace("\\", "/"), "template": tmpl,
@@ -570,6 +578,8 @@ def verify(agent, users, checks, data_b, hashes):
           "summary.md: сценарий АРМ выработки присутствует")
     check("Отражение заправок" in md_text,
           "summary.md: сценарий АРМ заправок присутствует")
+    check("Отражение расхода топлива" in md_text,
+          "summary.md: сценарий АРМ расхода топлива присутствует")
 
     totals = (summary or {}).get("totals") or {}
     expected = sum(int(f.get("scenarios") or 0) for f in rfiles)
