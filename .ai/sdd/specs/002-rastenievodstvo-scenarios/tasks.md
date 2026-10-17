@@ -197,18 +197,22 @@
 **Priority:** P1 · **Estimate:** 2h · **Dependencies:** T7 · **Covers:** FR-004
 
 ### Work
-- [ ] arm-payroll, arm-fuel-expense, arm-fuel-receipt по итогам T7;
+- [x] arm-payroll, arm-fuel-expense, arm-fuel-receipt по итогам T7;
       отражаем только копии документов (design §7)
-- [ ] Probe-раннеры; итерации до rs=0
+- [x] Probe-раннеры; итерации до rs=0
 
 ### Acceptance Criteria
-- [ ] Каждый arm-шаблон стабилен в probe (или отклонён по T7 — задокументировано)
+- [x] Каждый arm-шаблон стабилен в probe (или отклонён по T7 — задокументировано)
+  (arm-fuel-receipt и arm-payroll: rs=0 ×2; arm-fuel-expense — отклонён: данные
+  АРМ формируют только закрытые ПЛ (статус 3), фикстуры 04-fuel-sheet на статусе 2,
+  задокументировано в header шаблона и tmp/t9/arm-rashod/)
 
 ### Files
 - `tests/templates/arm-*.feature`, `scripts/s2_probe_arm*_run.py`
 
 ### Verification
-- [ ] Probe-прогоны ReturnStatus=0 (два раза подряд)
+- [x] Probe-прогоны ReturnStatus=0 (два раза подряд)
+  (arm-fuel-receipt: va_status=0 run1+run2; arm-payroll: va_status=0 run7+run8)
 
 ## Task T9: Полный цикл + AC + отчёт
 **Priority:** P0 · **Estimate:** 2h · **Dependencies:** T2, T3, T4, T6/T8 (или их отклонения) · **Covers:** FR-007, NFR-001, US-005
