@@ -12,7 +12,7 @@
 
 | ID | Name | Status | Path |
 |----|------|--------|------|
-| 003 | Регресс-конвейер (Фаза 4) | design (в разработке) | `.ai/sdd/specs/003-regression-conveyor/` |
+| — | (пусто) | — | — |
 
 ## Feature Workspace
 
@@ -29,6 +29,7 @@
 |----|---------|--------|--------------|--------|-------|--------|
 | 001 | Обработка препроцессинга (preprocessor-epf) | implementation:complete (T1–T9 закрыты 2026-10-15, E2E доказан run-20261015-003718) | `.ai/sdd/specs/001-preprocessor-epf/requirements.md` | `.ai/sdd/specs/001-preprocessor-epf/design.md` | `.ai/sdd/specs/001-preprocessor-epf/tasks.md` | — |
 | 002 | Сценарии растениеводства (rastenievodstvo-scenarios) | implementation:complete (T1–T9 закрыты 2026-10-17, полные E2E-гейты зелёные: run-20261017-060711 = 4/4 rs=0, run-20261017-084258 = 5/5 rs=0, NFR-001 18.3 мин ≤40) | `.ai/sdd/specs/002-rastenievodstvo-scenarios/requirements.md` | `.ai/sdd/specs/002-rastenievodstvo-scenarios/design.md` | `.ai/sdd/specs/002-rastenievodstvo-scenarios/tasks.md` | — |
+| 003 | Регресс-конвейер (regression-conveyor) | requirements:approved (2026-10-18, Q-001…Q-005 закрыты рекомендованными ответами D-004…D-008) | `.ai/sdd/specs/003-regression-conveyor/requirements.md` | — | — | — |
 
 ## Handoff
 
@@ -38,5 +39,6 @@
 
 - [x] Реализация спеки 001 (T1–T9) — завершена 2026-10-15: полный цикл E2E, отчёт `docs/night-report-2026-10-15.md`, продолжение — `docs/next-session-prompt.md`
 - [x] Спека 002: T1–T9 — закрыта 2026-10-17 (полный E2E 5/5 rs=0, NFR-001 18.3 мин); продолжение — `docs/next-session-prompt.md` (спека 003)
+- [ ] Спека 003 «Регресс-конвейер»: requirements approved 2026-10-18 → design (sdd-spec) → tasks (sdd-tasks) → реализация T1…Tn
 - [x] Open Q дизайна «наряд → АРМ ВыработкиСотрудников» — верифицирован по модулям (ManagerModule:209,353,874 → АРМ:117), coverage-map `verified:true`
 - [x] coverage-map обогащён: каталожные оси ЗаправочныхВедомостей (docField/valuePath/tabularSources)
