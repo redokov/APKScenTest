@@ -1,84 +1,91 @@
-# SDD Handoff Brief: Спека 002 — Сценарии растениеводства
+# SDD Handoff Brief: Спека 003 — Регресс-конвейер
 
-> Status: Draft
-> Readiness: Ready for implementation
-> Updated: 2026-10-15
+> Status: Ready for implementation
+> Readiness: requirements + design + tasks approved
+> Updated: 2026-10-18
 
 ## Metadata
 
-- **Spec ID:** `002-rastenievodstvo-scenarios`
-- **Spec Path:** `.ai/sdd/specs/002-rastenievodstvo-scenarios/`
+- **Spec ID:** `003-regression-conveyor`
+- **Spec Path:** `.ai/sdd/specs/003-regression-conveyor/`
 - **Current .status:** `tasks:approved`
-- **Source Inputs:** `.ai/sdd/PLAN.md` (Фаза 3), D-013 спеки 001, `docs/night-report-2026-10-15.md`
+- **Source Inputs:** `.ai/sdd/PLAN.md` (Фаза 4, D7), `docs/next-session-prompt.md`,
+  `docs/night-report-2026-10-17.md` (спеки 001–002 завершены)
 
 ## Product / Feature Summary
 
-- **User:** инженер АПК, проверяющий обновление релиза ERP/АПК.
-- **Problem:** покрыт только один сценарий ввода (01-pl-tractor);
-  план Фазы 3 требует наборы по группам документов растениеводства.
-- **Outcome:** полный регресс-прогон покрывает путевые листы (трактор/авто),
-  заправочные ведомости, взвешивания, наряды и отражение АРМами.
-- **Scope:** 6+ новых шаблонов, расширение экстрактора фикстур,
-  расширение манифеста батчей. Конвейер спеки 001 — без изменений.
-- **Out of Scope:** животноводство, негативные сценарии, веб-клиент,
-  реальные авторы (до явного разрешения пользователя).
+- **User:** администратор демо-базы `dev_erpapk_demo`, получающий релизы ERP+АПК.
+- **Problem:** процедура регресса после обновления релиза не упакована: нет
+  одной команды, безопасного цикла «дамп → обновление → прогон → откат»,
+  baseline-эталона и runbook.
+- **Outcome:** `python scripts/regress_run.py --rehearsal | --update <path>`
+  → отчёт (сценарий × пользователь × статус × vs baseline) при
+  гарантированном dt-откате демо-базы.
+- **Scope:** новый оркестратор `scripts/regress_run.py`, baseline
+  `tests/baseline/`, `docs/runbook.md`. Гейт `t8_gate.py` и EPF НЕ меняются.
+- **Out of Scope:** реальное применение релизов из внешних источников,
+  реальные авторы (D-001), новые шаблоны, allure-commandline, CI/CD.
 
 ## Requirements Summary
 
-- **Key User Stories:** US-001 (02-pl-auto), US-002 (04-fuel-sheet),
-  US-003 (05-weighing), US-004 (arm-*), US-005 (фикстуры)
-- **Must Have:** FR-001, FR-002, FR-003, FR-006, FR-007, FR-008
-- **Should Have:** FR-004 (АРМ), FR-005 (наряды)
-- **Acceptance Notes:** критерий достаточности D-013: шаблон заполняет
-  документ целиком из фикстуры, проверяется probe-прогоном.
+- **Must Have:** FR-001 (one-command, режимы --rehearsal/--update),
+  FR-002 (гарантированный откат), FR-003 (отчёт), FR-004 (baseline-diff).
+- **Should Have:** FR-005 (реестр baseline), FR-006 (runbook).
+- **Could Have:** FR-007 (веб-клиент, D-006 отложенный), FR-008 (ретро).
+- **Key Decisions:** D-004 (CLI py-раннер), D-005 (baseline JSON в git),
+  D-006 (веб отложен при headless), D-007 (rehearsal + update), D-008 (ретро
+  задачей), наследие D-001 (зонды), D-002 (веб по флагу), D-003 (без allure-cli).
 
 ## Design Summary
 
-- **Approach:** probe-first per шаблон (раннее правило T8), только
-  доказанные механизмы VA (TD-001), расширение экстрактора на месте
-  (TD-002), разведка АРМ до шаблонов (TD-003), исследование
-  сопоставления авторов нарядов (TD-004).
-- **Components / Modules:** `tests/templates/`, экстрактор
-  `ObjectModule.bsl`, `tests/coverage-map.json`, probe-раннеры
-  `scripts/s2_probe*_run.py`.
-- **Data / State:** fixtures.json `documents[].data.tabular` — полный
-  состав колонок, ≤3 строки (D-002), производные поля.
-- **APIs / Integrations:** манифест фич привязывает шаблоны к типам
-  документов (§6 design).
-- **Risks / Constraints:** механика АРМ неизвестна (разведка T7);
-  авторы нарядов могут не сопоставляться (T5).
+- **Approach:** тонкая обёртка над доказанным гейтом (TD-001, подпроцесс);
+  dt-lifecycle через `1cv8 DESIGNER /DumpIB`/`/RestoreIB` с откатом в
+  `finally` и без авто-удаления дампов (TD-002/TD-004); baseline-ключ
+  (scenario, user) с классами REGRESSION/IMPROVED/NEW/MISSING (TD-003);
+  безопасная репетиция update — dt той же базы (TD-005); веб-клиент — слот
+  после GUI-вопроса (TD-006).
+- **Components:** `scripts/regress_run.py` (новый), `scripts/t8_gate.py`
+  (без правок), `tests/baseline/{baseline.json,history/}`, `docs/runbook.md`,
+  артефакты в `tmp/regress/<ts>/`.
+- **Data:** вход — `tests/run-*/summary.json` (проверенная структура:
+  totals, scenarios[{scenario,user,status,durationMs,returnStatus}],
+  batches[{user,batch,returnStatus,verdict,passwordRestored,zodRestored}]).
+- **Risks:** монопольный доступ RestoreIB (чужие сессии), несовместимость
+  CF с расширением VA, время дампа — все с митигациями в design §14.
 
 ## Implementation Plan
 
-- **Task Source:** `.ai/sdd/specs/002-rastenievodstvo-scenarios/tasks.md`
-- **Recommended Order:** T1 → (T2, T3, T4, T5, T7 параллельно-последовательно) → T6, T8 → T9
-- **Key Tasks:** T1 (экстрактор) — блокирует все шаблоны; T9 (полный цикл) — финал
-- **Likely Files / Areas:** см. tasks.md
+- **Task Source:** `.ai/sdd/specs/003-regression-conveyor/tasks.md`
+- **Recommended Order:** T1 → T2 → T4 → T3 → T5 → T6 → T8 → T7 (опц.)
+- **Key Tasks:** T1 (флаги/тайминги дизайнера — факты для всего), T5
+  (E2E-доказательство + фиксация baseline релиза 1).
+- **Likely Files:** см. tasks.md per-task Files.
 
 ## Verification Plan
 
 ```text
-Probe-прогоны per шаблон: ReturnStatus=0 дважды подряд
-Полный цикл: python scripts/s2_gate.py (или t8_gate) — все батчи rs=0
-Гейты BSL: bsl-ls (bsl_analyze ≠ 0 файлов) + v8std; сборка scripts/build_t6.py
+T1: python scripts/t1_probe_dump.py → dump.log + t1-facts.md
+T2/T5: реальный rehearsal: гейт 5/5 rs=0, rollback=OK, regress-report.md
+T4: python scripts/test_regress_diff.py (синтетика diff-классов) — зелёный
+Гейты BSL: n/a (BSL/XML не меняются в спеке 003)
 ```
 
 ## Review / Release Notes
 
 - **Review Artifact:** not yet
 - **Review Verdict:** Not reviewed
-- **Known Follow-ups:** режим реальных авторов (Q-001/D-001 спеки 002) —
-  отдельное решение пользователя; негативные сценарии — вне скоупа.
+- **Known Follow-ups:** T7 веб-клиент (GUI-вопрос перед стартом), T8 ретро
+  релиза 2 (с пользователем), carried-девиации: авто-ПЛ `when: never`,
+  статичный окт-2026.
 
 ## Handoff Readiness
 
 - **Ready for Implementation:** yes
-- **Ready for QA:** no (после T9)
-- **Ready for Release:** no
+- **Ready for QA:** no (после T5)
+- **Ready for Release:** no (после T6+review)
 
-## Дисциплина реализации (переносится из спеки 001)
+## Дисциплина реализации (переносится)
 
-Оркестратор + последовательные субагенты (wormsoft/zai/glm-5.3:NVFP4),
-PROGRESS.md per задача (`tmp/s2/`), heartbeat, гейты после каждой правки
-BSL, probe-first, 2-attempt stop, безопасность: зонды, реальные
-пользователи НЕ трогать, конфигурация базы не меняется.
+Последовательные шаги, коммиты per задача, heartbeat `tmp/t9/heartbeat.txt`,
+PROGRESS per задача, 2-attempt stop, кириллица в CLI только через
+heredoc-билдеры, реальная верификация перед claim complete.
