@@ -63,6 +63,26 @@ FULLNAME = {ZOND1: "Зонд T8-1 (удаляется)",
             ZOND2: "Зонд T8-2 (удаляется)"}
 NEED_ROLES = ["ПолныеПрава", "АдминистраторСистемы"]
 
+# s004 (FR-004): негативный пользователь и его детерминированный состав
+# (зонд-факт tmp/s004/facts-neg-composition.md: права аддитивны, Апк-прав
+# нет ни у одной роли; АдминистраторСистемы обязателен для /Execute).
+NEG_USER = "АпкСценТест_Негатив1"
+NEG_PWD = "ApkSct-Neg1-2026!n"
+NEG_FULLNAME = "Негатив s004 (удаляется)"
+NEG_ROLES = ["АдминистраторСистемы", "БазовыеПраваБСП", "ЗапускТонкогоКлиента",
+             "ИнтерактивноеОткрытиеВнешнихОтчетовИОбработок",
+             "VAExtension_ОбщиеПрава"]
+NEG_TEMPLATE = "neg-pl-denied"
+NEG_TEMPLATE_FILE = os.path.join(ROOT, "tests", "templates", "neg-pl-denied.feature")
+SMOKE_TEMPLATE_FILE = os.path.join(ROOT, "tests", "templates", "00-smoke.feature")
+
+# s004: режим реальных авторов — флаг CLI; guard-файлы парольной опасности
+REAL_MODE = "--real-authors" in sys.argv
+GUARD_DIR = os.path.join(ROOT, "tests", "pwd-guard")
+RAC = r"C:\Program Files\1cv8\8.5.4.1683\bin\rac.exe"
+RAC_CLUSTER = "67cdef87-7bfc-4dae-b8e4-3ea9f8529156"
+RAC_INFOBASE = "c6a442bb-d7a9-4d8b-a274-37ea859b26c1"  # dev_erpapk_demo
+
 log_lines = []
 
 
@@ -195,6 +215,141 @@ def cleanup_today_counters(agent):
 
 def kill_tree(pid):
     subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True)
+
+
+# --- s004: режим реальных авторов -------------------------------------
+
+def rac_sessions_online():
+    """Онлайн-сеансы на dev_erpapk_demo (FR-003, exit 2 у вызывающего).
+
+    Возвращает (список_строк_описаний, код_ошибки|None).
+    """
+    try:
+        out = subprocess.run([RAC, "session", "list", "--cluster=" + RAC_CLUSTER],
+                             capture_output=True, timeout=60)
+    except Exception as e:
+        return None, "rac недоступен: %s" % str(e)[:150]
+    txt = out.stdout.decode("cp866", errors="replace")
+    sessions = []
+    for block in txt.split("\n\n"):
+        fields = {}
+        for line in block.splitlines():
+            if ":" in line:
+                k, _, v = line.partition(":")
+                fields[k.strip()] = v.strip()
+        if fields.get("infobase") == RAC_INFOBASE:
+            sessions.append("%s (%s)" % (fields.get("user-name"),
+                                         fields.get("app-id")))
+    return sessions, None
+
+
+def guard_write(run_id, payload):
+    """Guard-файл активного опасного окна (FR-006, 3-уровневая защита)."""
+    os.makedirs(GUARD_DIR, exist_ok=True)
+    path = os.path.join(GUARD_DIR, "%s.active.json" % run_id)
+    with io.open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=1)
+    return path
+
+
+def guard_active_files():
+    if not os.path.isdir(GUARD_DIR):
+        return []
+    return sorted(f for f in os.listdir(GUARD_DIR) if f.endswith(".active.json"))
+
+
+def guard_clear(run_id):
+    path = os.path.join(GUARD_DIR, "%s.active.json" % run_id)
+    if os.path.exists(path):
+        os.remove(path)
+
+
+def create_neg_user(agent, users):
+    """Негативный пользователь: 5 СУЩЕСТВУЮЩИХ ролей (TD-002), без Апк-прав."""
+    md_roles = agent.Метаданные.Роли
+    for rn in NEG_ROLES:
+        if getattr(md_roles, rn, None) is None:
+            raise RuntimeError("роль neg-состава не найдена в базе: %s" % rn)
+    old = find_user(users, NEG_USER)
+    if old is not None:
+        old.Удалить()
+    u = users.СоздатьПользователя()
+    u.Имя = NEG_USER
+    u.ПолноеИмя = NEG_FULLNAME
+    u.Пароль = NEG_PWD
+    for rn in NEG_ROLES:
+        u.Роли.Добавить(getattr(md_roles, rn))
+    try:
+        u.ЗащитаОтОпасныхДействий.ПредупреждатьОбОпасныхДействиях = False
+    except Exception as e:
+        log("[setup] ЗОД off fail (%s): %s" % (NEG_USER, str(e)[:80]))
+    u.Записать()
+    h1 = find_user(users, NEG_USER).СохраняемоеЗначениеПароля
+    log("[setup] %s создан (роли: %s), H1 len=%d"
+        % (NEG_USER, "+".join(NEG_ROLES), len(h1)))
+    return h1
+
+
+def prepare_real_manifest(run_dir, checks):
+    """Real-режим: манифест НЕ ограничивается (реальные авторы),
+    smoke маршрутизируется первому автору (D-003), добавляется
+    neg-батч (FR-004). Возвращает (авторы, ошибка)."""
+    manifest_path = os.path.join(run_dir, "features-manifest.json")
+    manifest = read_json(manifest_path)
+    if not manifest:
+        return None, "features-manifest.json не читается"
+    shutil.copyfile(manifest_path,
+                    os.path.join(run_dir, "features-manifest.generated.json"))
+    files = manifest.get("files") or []
+    if not files:
+        return None, "сгенерированный манифест пуст"
+    fdir = os.path.join(run_dir, "features")
+
+    # D-003: smoke как первый батч под первым автором
+    first_author = files[0].get("user", "")
+    if not first_author:
+        return None, "первая запись манифеста без пользователя"
+    has_smoke = any(e.get("template") == "00-smoke" for e in files)
+    if not has_smoke:
+        smoke_dst = os.path.join(fdir, "00-smoke--real.feature")
+        shutil.copyfile(SMOKE_TEMPLATE_FILE, smoke_dst)
+        files.insert(0, {"file": smoke_dst.replace("\\", "/"),
+                         "template": "00-smoke", "user": first_author,
+                         "scenarios": 1, "documents": []})
+        log("[real] smoke добавлен под первого автора: %s" % first_author)
+
+    # FR-004: neg-батч последним (временный пользователь, метка negative)
+    neg_dst = os.path.join(fdir, "neg-pl-denied--ApkSctNeg1.feature")
+    shutil.copyfile(NEG_TEMPLATE_FILE, neg_dst)
+    files.append({"file": neg_dst.replace("\\", "/"),
+                  "template": NEG_TEMPLATE, "user": NEG_USER,
+                  "scenarios": 1, "documents": [], "negative": True})
+
+    manifest["files"] = files
+    manifest["realAuthors"] = True
+    with io.open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=1)
+
+    authors = sorted(set(e.get("user", "") for e in files
+                         if e.get("user") and e.get("user") != NEG_USER))
+    checks["realAuthors"] = authors
+    checks["restricted"] = False
+    log("[real] манифест: реальные авторы (%d) + neg-батч (%s)"
+        % (len(authors), NEG_USER))
+    return authors, None
+
+
+def real_snapshot(agent, users, authors):
+    """Уровень-1 защиты: снимок исходного состояния паролей авторов
+    ДО Stage B (COM, чтение)."""
+    snap = {}
+    for name in authors:
+        u = find_user(users, name)
+        if u is None:
+            raise RuntimeError("автор плана не найден в ИБ: %s" % name)
+        snap[name] = {"pwdSet": bool(u.ПарольУстановлен),
+                      "hash": str(u.СохраняемоеЗначениеПароля)}
+    return snap
 
 
 def read_json(path):
@@ -330,9 +485,37 @@ def restrict_manifest(run_dir, checks):
 
 def main():
     checks = {}
+    # s004: префлайт режима реальных авторов (до любых изменений базы)
+    if REAL_MODE:
+        active = guard_active_files()
+        if active:
+            log("[preflight] FAIL: активные guard-файлы (незавершённый прогон): %s"
+                % ", ".join(active))
+            log("[preflight] см. docs/runbook.md § восстановление")
+            io.open(GATE_LOG, "w", encoding="utf-8").write("\n".join(log_lines))
+            sys.exit(2)
+        sessions, rac_err = rac_sessions_online()
+        if rac_err:
+            log("[preflight] FAIL: %s" % rac_err)
+            io.open(GATE_LOG, "w", encoding="utf-8").write("\n".join(log_lines))
+            sys.exit(2)
+        if sessions:
+            log("[preflight] FAIL: онлайн-сеансы на базе (%d): %s"
+                % (len(sessions), "; ".join(sessions)))
+            io.open(GATE_LOG, "w", encoding="utf-8").write("\n".join(log_lines))
+            sys.exit(2)
+        log("[preflight] OK: guard чист, онлайн-сеансов нет")
+        settings_data = read_json(SETTINGS) or {}
+        if settings_data.get("alwaysSubstitutePwd") is not True:
+            log("[preflight] FAIL: settings без alwaysSubstitutePwd=true "
+                "(запускайте через regress_run.py --real-authors)")
+            io.open(GATE_LOG, "w", encoding="utf-8").write("\n".join(log_lines))
+            sys.exit(2)
+        log("[preflight] OK: alwaysSubstitutePwd=true в настройках")
     agent = win32com.client.Dispatch("V85.COMConnector").Connect(conn_str(ADMIN, ""))
     users = agent.ПользователиИнформационнойБазы
     hashes = {}
+    snapshot = {}
     ok = False
     try:
         # --- Stage A: конвейер генерации -------------------------------
@@ -369,21 +552,43 @@ def main():
         log("[stage-a] features=%s" % (data_a.get("featuresSummary", "")[:200],))
 
         # --- Ограничение E2E: временные пользователи --------------------
-        hashes[ZOND1] = create_user(agent, users, ZOND1)
-        hashes[ZOND2] = create_user(agent, users, ZOND2)
-        orig_users, err = restrict_manifest(run_dir, checks)
-        if err:
-            log("[restrict] FAIL: %s" % err)
-            return finish(False)
-        log("[restrict] манифест ограничен: Зонд1=smoke, Зонд2=01-pl-tractor")
-        log("[restrict] arm-шаблоны в прогоне зондов: %s"
-            % (", ".join(checks.get("armTemplates", [])) or "нет"))
-        log("[restrict] реальные авторы (pending user confirmation): %s"
-            % "; ".join(orig_users))
-
-        # T9: счётчики ТС «сегодня» от утреннего прогона конфликтуют
-        # с новым путевым листом (независимый РС) - чистим residues
-        cleanup_today_counters(agent)
+        if REAL_MODE:
+            # s004: реальные авторы (restrict_manifest не выполняется),
+            # второй рубеж rac-проверки ПОСЛЕ Stage A (окно могло открыться)
+            sessions, rac_err = rac_sessions_online()
+            if rac_err or sessions:
+                log("[real] FAIL: онлайн-сеансы после Stage A: %s"
+                    % (rac_err or "; ".join(sessions)))
+                return finish(False)
+            authors, err = prepare_real_manifest(run_dir, checks)
+            if err:
+                log("[real] FAIL: %s" % err)
+                return finish(False)
+            snapshot = real_snapshot(agent, users, authors)
+            for name in authors:
+                log("[real] автор %s: pwdSet=%s hashLen=%d"
+                    % (name, snapshot[name]["pwdSet"], len(snapshot[name]["hash"])))
+            hashes[NEG_USER] = create_neg_user(agent, users)
+            guard_write(run_id, {"runId": run_id, "mode": "real-authors",
+                                  "authors": authors,
+                                  "snapshot": snapshot,
+                                  "negUser": NEG_USER,
+                                  "startedAt": time.strftime("%Y-%m-%dT%H:%M:%S")})
+            log("[real] guard-файл записан: %s.active.json" % run_id)
+            cleanup_today_counters(agent)
+        else:
+            hashes[ZOND1] = create_user(agent, users, ZOND1)
+            hashes[ZOND2] = create_user(agent, users, ZOND2)
+            orig_users, err = restrict_manifest(run_dir, checks)
+            if err:
+                log("[restrict] FAIL: %s" % err)
+                return finish(False)
+            log("[restrict] манифест ограничен: Зонд1=smoke, Зонд2=01-pl-tractor")
+            log("[restrict] arm-шаблоны в прогоне зондов: %s"
+                % (", ".join(checks.get("armTemplates", [])) or "нет"))
+            log("[restrict] реальные авторы (pending user confirmation): %s"
+                % "; ".join(orig_users))
+            cleanup_today_counters(agent)
 
         # --- Stage B: батчи T6-раннером --------------------------------
         # Ретрай: сбой подключения TestClient (rs=2) недетерминирован
@@ -468,12 +673,21 @@ def main():
 
         # --- Верификация -----------------------------------------------
         try:
-            ok = verify(agent, users, checks, data_b, hashes)
+            if REAL_MODE:
+                ok = verify_real(agent, users, checks, data_b, hashes, snapshot)
+            else:
+                ok = verify(agent, users, checks, data_b, hashes)
         except Exception as e:
             log("[verify] FAIL: исключение: %s" % str(e)[:200])
             ok = False
+        # s004: guard снимается ТОЛЬКО при зелёной верификации;
+        # при FAIL guard остаётся — следующий прогон откажет (exit 2)
+        if REAL_MODE and ok:
+            guard_clear(run_id)
+            log("[real] guard снят (прогон зелёный)")
     finally:
-        for name in (ZOND1, ZOND2):
+        cleanup_names = [NEG_USER] if REAL_MODE else [ZOND1, ZOND2]
+        for name in cleanup_names:
             for attempt in (1, 2):
                 try:
                     u = find_user(users, name)
@@ -594,6 +808,110 @@ def verify(agent, users, checks, data_b, hashes):
     checks["verify"] = {"scan": len(reps), "users": len(scan_users),
                         "docTypes": sorted(doc_types), "allure": len(allure),
                         "totals": totals}
+    return ok
+
+
+def verify_real(agent, users, checks, data_b, hashes, snapshot):
+    """s004: верификация режима реальных авторов.
+
+    Уровни защиты паролей: (1) snapshot гейта до Stage B,
+    (2) флаги passwordRestored/pwdSubstituted батчей, (3) COM-чтение
+    исходного состояния авторов после прогона. Негатив: инверсия на
+    уровне отчёта (СобратьОтчет) — здесь проверяем итоги summary.
+    """
+    ok = True
+
+    def check(cond, label):
+        nonlocal ok
+        log("  [%s] %s" % (["FAIL", "OK"][bool(cond)], label))
+        if not cond:
+            ok = False
+
+    run_dir = checks.get("runDir", "")
+    authors = checks.get("realAuthors") or []
+
+    scan = read_json(os.path.join(run_dir, "scan.json"))
+    check(scan is not None, "scan.json читается")
+    fixtures = read_json(os.path.join(run_dir, "fixtures.json"))
+    check(fixtures is not None, "fixtures.json читается")
+    feature_files = glob.glob(os.path.join(run_dir, "features", "*.feature"))
+    check(len(feature_files) >= 2, "фичи сгенерированы (>=2, есть %d)" % len(feature_files))
+
+    rmanifest = read_json(os.path.join(run_dir, "features-manifest.json"))
+    rfiles = (rmanifest or {}).get("files") or []
+    neg_entries = [f for f in rfiles if f.get("negative")]
+    check(len(neg_entries) == 1, "neg-запись в манифесте (= %d)" % len(neg_entries))
+    check(all(f.get("user") != NEG_USER or f.get("negative") for f in rfiles),
+          "NEG-пользователь только в neg-записи")
+
+    batches = data_b.get("batches") or []
+    expected_batches = len(authors) + 1
+    check(len(batches) == expected_batches,
+          "батчей == авторы+neg (= %d, ожидается %d)" % (len(batches), expected_batches))
+    for b in batches:
+        is_neg = b.get("user") == NEG_USER
+        check(b.get("pwdSubstituted") is True,
+              "батч %s (%s): пароль подменён (pwdSubstituted)"
+              % (b.get("batch"), b.get("user")))
+        check(b.get("passwordRestored") is True,
+              "батч %s: пароль восстановлен" % b.get("batch"))
+        if not is_neg:
+            check(b.get("returnStatus") == "0",
+                  "батч %s (%s): ReturnStatus=0 (=%s)"
+                  % (b.get("batch"), b.get("user"), b.get("returnStatus")))
+        # neg-батч: VA-вердикт failed ОЖИДАЕМ (честно красный сценарий);
+        # инверсия проверяется ниже по summary
+    check(all(b.get("user") in authors or b.get("user") == NEG_USER for b in batches),
+          "все батчи - авторы плана или NEG-пользователь")
+
+    params_left = glob.glob(os.path.join(run_dir, "params", "vaparams-*.json"))
+    check(not params_left, "VAParams-файлы удалены (%d осталось)" % len(params_left))
+
+    # Уровень-3: COM-чтение исходного состояния авторов
+    for name in authors:
+        u = find_user(users, name)
+        if u is None:
+            check(False, "%s: пользователь исчез" % name)
+            continue
+        snap = snapshot.get(name, {})
+        check(bool(u.ПарольУстановлен) == snap.get("pwdSet"),
+              "%s: ПарольУстановлен == исходному" % name)
+        if snap.get("pwdSet"):
+            check(str(u.СохраняемоеЗначениеПароля) == snap.get("hash"),
+                  "%s: хэш == исходному (COM)" % name)
+        else:
+            check(not u.ПарольУстановлен, "%s: пароля нет (COM)" % name)
+
+    # NEG-пользователь: создан, пароль восстановлен раннером, будет
+    # удалён в finally (проверка удаления - лог cleanup)
+    neg_u = find_user(users, NEG_USER)
+    check(neg_u is not None, "%s существует на момент verify" % NEG_USER)
+    if neg_u is not None:
+        check(str(neg_u.СохраняемоеЗначениеПароля) == hashes.get(NEG_USER),
+              "%s: хэш == созданному (раннер вернул тестовый)" % NEG_USER)
+
+    summary = read_json(os.path.join(run_dir, "summary.json"))
+    check(summary is not None, "summary.json читается")
+    totals = (summary or {}).get("totals") or {}
+    check(totals.get("negativePassed", 0) >= 1,
+          "totals.negativePassed >= 1 (=%s)"
+          % json.dumps(totals, ensure_ascii=False))
+    check(totals.get("negativeFailed", 0) == 0,
+          "totals.negativeFailed == 0 (=%s)"
+          % json.dumps(totals, ensure_ascii=False))
+    expected_positive = sum(int(f.get("scenarios") or 0) for f in rfiles
+                            if not f.get("negative"))
+    check(totals.get("passed", 0) >= expected_positive,
+          "totals.passed >= %d (позитивные сценарии) (= %s)"
+          % (expected_positive, json.dumps(totals, ensure_ascii=False)))
+
+    md_path = os.path.join(run_dir, "summary.md")
+    md_text = ""
+    if os.path.exists(md_path):
+        md_text = io.open(md_path, encoding="utf-8-sig").read()
+    check("neg-passed" in md_text, "summary.md содержит neg-passed")
+
+    checks["verify"] = {"authors": authors, "totals": totals}
     return ok
 
 
