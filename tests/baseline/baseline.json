@@ -1,0 +1,41 @@
+{
+ "baselineOf": "run-20261019-053203",
+ "createdAt": "2026-10-19T05:58:02",
+ "totals": {
+  "batches": 2,
+  "scenarios": 5,
+  "passed": 5,
+  "failed": 0,
+  "broken": 0,
+  "timeout": 0,
+  "unknown": 0
+ },
+ "scenarios": [
+  {
+   "scenario": "(ApkScenTest-Zond1) Подключение TestClient и закрытие окон",
+   "user": "АпкСценТест_Зонд1",
+   "status": "passed"
+  },
+  {
+   "scenario": "(ApkScenTest-Zond1) Отражение заправок топлива",
+   "user": "АпкСценТест_Зонд1",
+   "status": "passed"
+  },
+  {
+   "scenario": "(ApkScenTest-Zond2) Отражение расхода топлива",
+   "user": "АпкСценТест_Зонд2",
+   "status": "passed"
+  },
+  {
+   "scenario": "(ApkScenTest-Zond2) Отражение выработки сотрудников",
+   "user": "АпкСценТест_Зонд2",
+   "status": "passed"
+  },
+  {
+   "scenario": "(ApkScenTest-Zond2) Ввод и проведение путевого листа тракториста НВ00-000001",
+   "user": "АпкСценТест_Зонд2",
+   "status": "passed"
+  }
+ ],
+ "runDir": "tests/run-20261019-053203"
+}
