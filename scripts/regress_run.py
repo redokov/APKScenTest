@@ -29,6 +29,15 @@ COM_CONN = "Srvr='localhost';Ref='dev_erpapk_demo';Usr='%s';Pwd='';"
 ADMIN = "Администратор (ОрловАВ)"
 
 GATE = os.path.join(ROOT, "scripts", "t8_gate.py")
+GATE_SETTINGS = os.path.join(ROOT, "tmp", "t8", "preprocessor-settings.json")
+WEB_URL_DEFAULT = "http://localhost:9093/dev_erpapk_demo"
+
+# rac: запрет регл. заданий на время прогона (эксклюзив Dump/RestoreIB;
+# открытие 19.10: фоновое задание базы держало блокировку — дамп не
+# получил эксклюзив за 900 с). Кластер/ИБ демо-базы фиксированы.
+RAC = r"C:\Program Files\1cv8\8.5.4.1683\bin\rac.exe"
+RAC_CLUSTER = "67cdef87-7bfc-4dae-b8e4-3ea9f8529156"
+RAC_INFOBASE = "c6a442bb-d7a9-4d8b-a274-37ea859b26c1"  # dev_erpapk_demo
 RUNS_DIR = os.path.join(ROOT, "tests")
 BASELINE = os.path.join(ROOT, "tests", "baseline", "baseline.json")
 BASELINE_HIST = os.path.join(ROOT, "tests", "baseline", "history")
@@ -111,6 +120,17 @@ def preflight(args):
         if not p.lower().endswith(".dt"):
             log("[preflight] FAIL: baseline-dt должен быть .dt: %s" % p)
             return False
+    if args.web_client:
+        import urllib.error
+        import urllib.request
+        try:
+            urllib.request.urlopen(args.web_url, timeout=15)
+        except urllib.error.HTTPError:
+            pass  # сервер отвечает (любой HTTP-код) — публикация жива
+        except Exception as e:
+            log("[preflight] FAIL: веб-публикация недоступна (%s): %s"
+                % (args.web_url, str(e)[:150]))
+            return False
     try:
         import win32com.client
         agent = win32com.client.Dispatch("V85.COMConnector").Connect(
@@ -168,6 +188,65 @@ def do_rollback(dump_dt):
                               TIMEOUT_RESTORE)
     phase("rollback", time.time() - t0, "OK" if ok else "FAILED")
     return ok
+
+
+def rac_jobs_deny_get():
+    """Текущее значение scheduled-jobs-deny ИБ ('on'/'off'/None)."""
+    try:
+        out = subprocess.run(
+            [RAC, "infobase", "info", "--cluster=" + RAC_CLUSTER,
+             "--infobase=" + RAC_INFOBASE],
+            capture_output=True, timeout=60).stdout
+    except Exception as e:
+        log("   rac infobase info FAIL: %s" % str(e)[:150])
+        return None
+    for line in out.decode("cp866", errors="replace").splitlines():
+        if line.strip().startswith("scheduled-jobs-deny"):
+            return line.split(":", 1)[1].strip()
+    return None
+
+
+def rac_jobs_deny_set(on):
+    """Установить scheduled-jobs-deny=on/off. Возвращает ok."""
+    try:
+        rc = subprocess.run(
+            [RAC, "infobase", "update", "--cluster=" + RAC_CLUSTER,
+             "--infobase=" + RAC_INFOBASE,
+             "scheduled-jobs-deny=" + ("on" if on else "off")],
+            capture_output=True, timeout=60)
+    except Exception as e:
+        log("   rac infobase update FAIL: %s" % str(e)[:150])
+        return False
+    ok = rc.returncode == 0
+    log("   scheduled-jobs-deny=%s: %s" % ("on" if on else "off",
+                                           "OK" if ok else "FAIL"))
+    return ok
+
+
+def patch_settings_for_web(args):
+    """T7 (FR-007): clientType=Web + webUrl в настройках гейта.
+
+    Гейт (t8_gate.py) читает tmp/t8/preprocessor-settings.json как есть —
+    правка файла настроек вместо правки гейта (TD-001). Возвращает путь
+    бэкапа для восстановления в finally.
+    """
+    backup = GATE_SETTINGS + ".regress-bak"
+    shutil.copy2(GATE_SETTINGS, backup)
+    data = json.loads(io.open(GATE_SETTINGS, encoding="utf-8-sig").read())
+    data["clientType"] = "Web"
+    data["webUrl"] = args.web_url
+    io.open(GATE_SETTINGS, "w", encoding="utf-8").write(
+        json.dumps(data, ensure_ascii=False, indent=1))
+    log("   gate-settings: clientType=Web, webUrl=%s (backup: %s)"
+        % (args.web_url, os.path.basename(backup)))
+    return backup
+
+
+def restore_settings(backup):
+    if backup and os.path.exists(backup):
+        shutil.copy2(backup, GATE_SETTINGS)
+        os.remove(backup)
+        log("   gate-settings: восстановлены из backup")
 
 
 def run_gate(gate_timeout):
@@ -341,6 +420,11 @@ def main():
     ap.add_argument("--baseline-dt", metavar="FILE.dt",
                    help="RestoreIB known-good dt перед гейтом (TD-007, "
                         "только с --rehearsal)")
+    ap.add_argument("--web-client", action="store_true",
+                   help="T7 (FR-007): ТипКлиента=Web в VAParams батчей")
+    ap.add_argument("--web-url", default=WEB_URL_DEFAULT,
+                   help="URL веб-публикации базы (по умолчанию %s)"
+                        % WEB_URL_DEFAULT)
     ap.add_argument("--set-baseline", action="store_true")
     ap.add_argument("--no-compare", action="store_true")
     ap.add_argument("--gate-timeout", type=int, default=TIMEOUT_GATE)
@@ -365,6 +449,8 @@ def main():
         return EXIT_INFRA
     if args.baseline_dt:
         mode += " --baseline-dt %s" % args.baseline_dt
+    if args.web_client:
+        mode += " --web-client %s" % args.web_url
     log("REGRESS %s start: %s" % (_ts, mode))
 
     if not preflight(args):
@@ -373,10 +459,19 @@ def main():
 
     dumped = False
     dump_dt = None
+    settings_bak = None
+    jobs_deny_prev = None
     update_ok, upd_kind = True, "rehearsal (без обновления)"
     gate_rc = None
     rollback_ok = None
     try:
+        # Фоновые задания ИБ не должны стартовать на время дампа/restore:
+        # они держат сеансы/блокировки — эксклюзив не выдаётся (19.10).
+        jobs_deny_prev = rac_jobs_deny_get()
+        if jobs_deny_prev == "off":
+            if not rac_jobs_deny_set(True):
+                log("REGRESS %s: WARN: scheduled-jobs-deny не включён — "
+                    "дамп может ждать сеансы фоновых заданий" % _ts)
         ok, dump_dt = do_dump()
         if not ok:
             log("REGRESS %s: ABORT (dump FAILED), база не менялась" % _ts)
@@ -392,8 +487,14 @@ def main():
             if not update_ok:
                 log("REGRESS %s: update FAILED -> откат" % _ts)
                 return EXIT_INFRA
+        if args.web_client:
+            upd_kind += " + web-client"
+            settings_bak = patch_settings_for_web(args)
         gate_rc = run_gate(args.gate_timeout)
     finally:
+        restore_settings(settings_bak)
+        if jobs_deny_prev == "off":
+            rac_jobs_deny_set(False)
         if dumped:
             rollback_ok = do_rollback(dump_dt)
             if not rollback_ok:
