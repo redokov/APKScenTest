@@ -407,8 +407,11 @@ def main():
                     log("[stage-b] FAIL: клиентская сессия не завершилась")
                     return finish(False)
                 data_b = read_json(T6_RESULT)
-                if not data_b:
-                    log("[stage-b] FAIL: результат T6-раннера недоступен")
+                if data_b is None:
+                    log("[stage-b] FAIL: результат T6-раннера недоступен (runner crashed/timed out)")
+                    return finish(False)
+                if not data_b:  # empty dict / no step
+                    log("[stage-b] FAIL: результат T6-раннера пустой")
                     return finish(False)
                 log("[stage-b] step=%s errors=%s" % (data_b.get("step"), data_b.get("errorsCount")))
                 for b in (data_b.get("batches") or []):
