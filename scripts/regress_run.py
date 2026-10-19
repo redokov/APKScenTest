@@ -43,7 +43,9 @@ BASELINE = os.path.join(ROOT, "tests", "baseline", "baseline.json")
 BASELINE_HIST = os.path.join(ROOT, "tests", "baseline", "history")
 
 TIMEOUT_DUMP = 900          # факт T1: 207 c, запас x4
-TIMEOUT_RESTORE = 1500      # restore обычно сопоставим с дампом
+TIMEOUT_RESTORE = 3000      # restore ~800-900 штатно; при деградации среды
+                              # бывало дольше — kill посреди RestoreIB калечит
+                              # авторизацию (инцидент 20261019-103036)
 TIMEOUT_UPDATE = 1800       # cf: LoadCfg+UpdateDBCfg / dt: RestoreIB
 TIMEOUT_GATE = 45 * 60      # E2E <= 40 мин (NFR-001) + запас
 MIN_FREE_GB = 5.0

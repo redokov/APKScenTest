@@ -1,120 +1,99 @@
-# Промт для новой сессии: спека 003 — финал (T7 веб, T9 baseline-dt, T8 закрыть, review)
+# Промт для новой сессии: релиз 2 — реальные авторы + негативные сценарии (спека 004)
 
 ## Кто ты и где
 
 Пи-агент, проект `c:/MyProjects/APKScenTest` (1С:ERP+АПК 2.5, Vanessa
-Automation, репо GitHub, MCP `v8std`). База: `localhost\dev_erpapk_demo`
-(демо-база, PostgreSQL, пользователь `Администратор (ОрловАВ)` без пароля).
-Платформа: `C:\Program Files\1cv8\8.5.4.1683\bin` (1cv8c — тонкий клиент,
-1cv8 — DESIGNER batch).
-VA EPF: `C:\MyProjects\APKTechPlan\tests\vanessa\vanessa-automation-single.epf`.
-Исходники конфигурации: `C:/MyProjects/APKModSrc/`.
-**Сессия интерактивная** (видимый десктоп — GUI-операции разрешены).
+Automation, GitHub, MCP `v8std`). База: `localhost\dev_erpapk_demo`
+(PostgreSQL, пользователь `Администратор (ОрловАВ)` без пароля). Платформа:
+`C:\Program Files\1cv8\8.5.4.1683\bin`. VA EPF:
+`C:\MyProjects\APKTechPlan\tests\vanessa\vanessa-automation-single.epf`.
+Исходники конфигурации: `C:/MyProjects/APKModSrc/`. Сессия интерактивная.
 
 ## Контекст: что сделано (обязательно прочитать)
 
-1. `docs/night-report-2026-10-19.md` — полный отчёт: спека 003 T1–T6 закрыты
-   (rehearsal 5/5 + `--update`-репетиция 5/5 regressions=0, baseline в git,
-   runbook `docs/runbook.md`).
-2. `tmp/regress/EVIDENCE-T5.md`, `tmp/regress/probe/t1-facts.md` — evidence.
-3. Решения пользователя (2026-10-19, коммит 3b3969e):
-   - **TD-007 `--baseline-dt` ПРИНЯТ** → задача T9 в tasks.md;
-   - **Релиз 2 = (а) реальные авторы + (д) негативные сценария** (PLAN.md,
-     Фаза 5); животноводство/планирование — бэклог;
-   - T7 (веб-клиент) — РАЗБЛОКИРОВАН (сессия интерактивная).
+1. `docs/night-report-2026-10-19-day.md` — финал спеки 003: review:done
+   (Approved with follow-ups), T9 baseline-dt E2E зелёный, T7 вердикт,
+   инцидент с убитым RestoreIB и цепочка восстановления.
+2. `docs/night-report-2026-10-19.md` — T1–T6 спеки 003.
+3. `.ai/sdd/specs/003-regression-conveyor/review.md` — Follow-Ups.
+4. Решения пользователя: **релиз 2 = (а) реальные авторы вместо зондов
+   (снятие D-001 спеки 002) + (д) негативные сценарии** (PLAN.md Фаза 5);
+   животноводство/планирование/arm-fuel-expense — бэклог.
 
-## Задачи этой сессии (по приоритету)
+## БЛОКЕР ПРЕЖДЕ ВСЕГО: лицензии
 
-### T9 — `--baseline-dt` (TD-007, design.md §13)
+Сервер лицензий (`C:\ProgramData\1C\Licence\3.0\`, лог `licenceserver.*.log`)
+19.10: серия 4135 `ELicenceNotFound`, затем 1 одновременное место
+(`UseCount: 0`). Конвейеру нужно ≥2 параллельных сеанса (два батча per-user),
+веб-прогону ≥3. **Первым делом проверить логи лицензий и спросить
+пользователя о статусе лицензий.** Без этого любые прогоны краснеют на
+`status=connect rs=2` (см. runbook §4 последняя строка).
 
-- `scripts/regress_run.py`: флаг `--baseline-dt <file>`: дамп текущего →
-  RestoreIB baseline-dt → гейт → откат к дампу текущего (finally).
-- Взаимоисключаемость с `--update` (RestoreIB затёр бы обновление) — отказ
-  с понятным сообщением.
-- Runbook: раздел baseline-dt + «снять свежий baseline-dt после зелёного
-  прогона с обновлением».
-- E2E: `--rehearsal --baseline-dt tmp/regress/20261019-052456/pre-update.dt`
-  → ожидаем 5/5, regressions=0, откат к исходному. (Файл существует,
-  ~46 мин прогон; ФИКСИРОВАННЫЙ дизайн-порядок фаз см. design.md §4.2.)
+## Задачи этой сессии
 
-### T7 — веб-клиент (TD-006, сессия интерактивная)
+### 0. Быстрые хвосты спеки 003 (пока нет прогонов)
 
-- **Apache найден: `C:\1cweb\apache24`** (экземпляр erpuh3). web-publish
-  был ЗАПУЩЕН в прошлой сессии, но **команда прервана (aborted)** —
-  состояние публикации НЕИЗВЕСТНО. Первым делом:
-  `powershell.exe -NoProfile -File
-  "C:/MyProjects/PiPack/skills/1c/web-info/scripts/web-info.ps1"
-  -ApachePath "C:\1cweb\apache24"` — проверить статус/порт/конфиг.
-- Затем web-publish (скилл `web-publish`, ApachePath `C:\1cweb\apache24`):
-  `-InfoBaseServer localhost -InfoBaseRef dev_erpapk_demo
-  -UserName "Администратор (ОрловАВ)" -AppName dev_erpapk_demo -Port 8081
-  -V8Path "C:\Program Files\1cv8\8.5.4.1683\bin"`. NB: кириллический
-  UserName в bash-команде — риск манглинга; если упадёт авторизация —
-  повторить с UserName без кириллицы или через ps1-обёртку.
-- Флаг `--web-client` в `regress_run.py`: меняет ТипКлиента в VAParams
-  батчей на «Веб» (T6-раннер формирует VAParams — посмотреть, как
-  t8_gate.py/t6-раннер его собирают; возможно, правка настроек
-  preprocessor-settings.json или runner_task.json). Проверка: rehearsal
-  `--rehearsal --web-client` → явный вердикт (зелёный или документированный
-  отказ веб-клиента VA).
-- Если веб-прогон стабильно зелёный — T7 закрыт; в runbook — раздел.
-- После всех прогонов: web-unpublish (убрать публикацию) — аккуратно,
-  Apache используется erpuh3 (КОМУС), не ломать его конфиг: AppName строго
-  `dev_erpapk_demo`.
+- `TIMEOUT_RESTORE` в `scripts/regress_run.py`: 1500 → 3000 с (Issue 1
+  review). Коммит +一行 runbook (тайминги фаз).
+- Повторить веб-прогон T7 (`--rehearsal --web-client --web-url
+  http://localhost:9091/dev_erpapk_demo`) ТОЛЬКО когда лицензий хватает:
+  публикация через скилл web-publish, ApachePath `C:\1cweb\apache24`,
+  Port 9091, wrapper base64 для кириллического UserName — см.
+  `tmp/t7/publish.ps1` (механика уже доказана). После — web-unpublish +
+  восстановление `httpd.conf.pre-s003T7.bak`.
 
-### T8 — закрыть ретро
+### 1. Спека 004 «Реальные авторы» (sdd-prd → sdd-spec → sdd-tasks → реализация)
 
-Ретро-раздел PLAN.md уже написан (3b3969e). Осталось: пометить чекбокс
-«Ретро-раздел PLAN.md отревьюен пользователем» после его подтверждения.
+Ядро (из PLAN.md Фаза 5 и комментариев гейта `[restrict] реальные авторы
+(pending user confirmation)`):
+- Запуск сценариев под авторами документов (ОрловАВ/СоколовМИ и др.), а не
+  под зондами: регресс проверяет права/RLS. Механизм подмены/восстановления
+  хэшей паролей УЖЕ внутри t8_gate (спека 001) — снять ограничение
+  restrict_manifest (Зонд1=smoke, Зонд2=01-pl-tractor) на полный манифест.
+- Окно прогона — тихие часы; baseline переснимается (реальные авторы ≠
+  зонды по времени/поведению).
+- Негативные сценарии: пользователь без полных прав → ожидаемая ошибка
+  (нет прав). Нужен выбор носителя прав (роль «только чтение»? конкретный
+  реальный пользователь?) — обсудить с пользователем в requirements.
+- Данные: демо-база деградирует (баки −31.5 л/прогон) — после каждого
+  зелёного прогона снимать свежий baseline-dt (runbook §2) и гонять
+  `--baseline-dt` для воспроизводимости.
 
-### Финал спеки 003
+### 2. Дисциплина прогонов (обновлённая после инцидента 19.10)
 
-- sdd-review → `review.md` (requirements/design/tasks ↔ evidence).
-- `.status`: implementation:done → review:done; INDEX обновить.
-- `docs/night-report-<date>.md` + этот файл (next-session-prompt) —
-  на следующий рубеж (релиз 2: реальные авторы + негативные сценарии).
+- НИКОГДА не обрывать RestoreIB/DumpIB раньше >3000 с; признаки жизни:
+  рост pg data dir (`du -sh "C:\Program Files\PostgreSQL\18.3-5.1C\data\base"`),
+  подключения rphost→5432 (netstat). /Out пишется только по завершении!
+- При «тихом» зависании клиента — сначала `C:\ProgramData\1C\Licence\3.0\logs`
+  (лицензии), потом `rac session list --cluster=67cdef87-…` + terminate.
+- rac требует ad-hoc ras: `ras.exe cluster` (слушает 1545). Синтаксис:
+  `rac infobase info --cluster=<id> --name dev_erpapk_demo` (НЕ --infobase
+  для info; --infobase=<uuid> для update). Вывод rac — cp866.
+- Кириллица в CLI: только файлы/write-tool или base64-wrapper'ы; проверка
+  байтов. COM pywin32: методы через getattr-цепочки иногда падают
+  AttributeError — проверенные паттерны в scripts/*.py; вывод Execute() —
+  `.Выгрузить()` + `r[i][j]`.
+- Free space ≥5 ГБ (дамп 1.7 ГБ + restore ~2×); чистка старых pre-update.dt
+  кроме baseline-кандидатов.
 
-## Ключевые факты (не переоткрывать — из отчёта 2026-10-19)
+## Ключевые факты (не переоткрывать)
 
-- **Деградация демо-базы**: баки ТС пустеют (−31,5 л/прогон, МТЗ-82-79,
-  сейчас +583 л ≈ 18 прогонов). Симптом: 01-pl-tractor падает на
-  «жду Номер», на форме «Обнаружен отрицательный остаток топлива» (БЕЗ
-  модалки). Fix-рецепт: заправочная ведомость 700 л **датой ранее дня
-  прогона** (образец НВЦБ-000004 от 18.10; форма читает остаток на начало
-  дня). Структурно лечится T9 (--baseline-dt).
-- Диагностика UI-падений: одиночный probe
-  `tmp/regress/probe/probe_pl_run.py` (VAParams:
-  `ДелатьСкриншотПриВозникновенииОшибки`+`СниматьСкриншотКаждогоОкна1С`
-  +VanessaExt) → PNG→RGB (PIL) → OCR `tmp/regress/probe/ocr1.ps1`
-  (скилл img-occ нестабилен; WinRT транзиентен — повторить при AggregateException).
-- COM 8.5: метаданные через `ПустаяСсылка().Метаданные()`; журнал
-  регистрации из COM недоступен; ТЧ — `Выгрузить()`/`Получить(i)`;
-  справочники: `ТранспортныеСредства`, `СтруктураПредприятия`,
-  `Сотрудники`, `Номенклатура`, `Склады`, `Организации`.
-- rac: `--cluster=67cdef87-7bfc-4dae-b8e4-3ea9f8529156` (только cluster-id);
-  ras поднят ad-hoc (`ras.exe cluster`).
-- Кириллица через bash-transport портится интермиттентно — файлы писать
-  write-tool'ом, проверять байты; никогда `python -c` с кириллицей.
-- Тайминги: preflight ~1 мин, dump ~3–4 мин (1734 МБ), RestoreIB ~13–14 мин,
-  gate 14 мин (5/5), rollback ~13 мин. Полный rehearsal ≈33 мин, с update
-  ≈46 мин, с baseline-dt будет ≈47 мин. NFR-001 (E2E ≤40 мин) — с запасом.
-- Гейт `t8_gate.py` и EPF НЕ менять (TD-001); зонды D-001; VN БД:
-  база уже с расширением VA, компонента VanessaExt установлена.
-- Free space: было 19.7–28 ГБ — следить (каждый прогон +1.7 ГБ дампов;
-  чистка: `tmp/regress/*/pre-update*.dt`, кроме baseline-кандидата).
-
-## Дисциплина
-
-1. Прочитал контекст → heartbeat `tmp/t9/heartbeat.txt`.
-2. Коммит per шаг с информативным сообщением; INDEX/PROGRESS актуализировать.
-3. `docs/night-report-<date>.md` по завершении; этот файл переписать на
-   следующую точку.
-4. Верификация (команды/evidence) перед claim complete; 2-attempt stop.
-5. Перед чем-либо разрушительным — спросить; Apache общий с erpuh3 (КОМУС).
+- Спека 003: конвейер доказан 3 зелёными E2E (rehearsal/update/baseline-dt),
+  exit-коды/abort-пути проверены, baseline релиза 1 в git (run-20261019-053203),
+  runbook живой. NFR-001: gate ≤14.5 мин.
+- Тайминги: preflight ≤70 с, dump ~200 с, baseline-restore ~850 с, gate
+  840–870 с, rollback ~800 с; rehearsal ≈33 мин, +update ≈46 мин,
+  +baseline-dt ≈47 мин.
+- Веб-публикация базы: порт 9091 (8081 занят посторонним Apache; erpuh3
+  трогать нельзя — общий конфиг C:\1cweb\apache24, бэкап httpd.conf.pre-s003T7.bak).
+- EPF собран из src/АпкПодготовкаСценарныхТестов (build_t6.py; содержит
+  clientType/webUrl поддержку). Гейт t8_gate читает tmp/t8/preprocessor-settings.json.
+- Регистр топлива в баках называется `АпкГСМвБаках` (не ТопливоВСкладскихЗапасах).
+- Деградация: заправочная ведомость датой РАНЕЕ дня прогона (образец НВЦБ-0004);
+  штатный ввод остатков не повторится (ПоТехникеУжеВводилсяОстаток).
 
 ## Первая команда сессии
 
-`cat docs/night-report-2026-10-19.md` (я уже прочитал промт) →
-heartbeat → **T9** (реализация --baseline-dt, ~1 ч) → E2E-прогон T9 (~47 мин)
-→ **T7** (web-info → web-publish → --web-client → прогон) → T8 чекбокс →
-sdd-review → night-report + этот промт на релиз 2.
+`cat docs/night-report-2026-10-19-day.md` → heartbeat → проверить лицензии
+(спросить пользователя) → мелкий фикс TIMEOUT_RESTORE → старт SDD-цикла
+спеки 004 (sdd-prd: реальные авторы + негативные сценарии).
