@@ -40,6 +40,9 @@ RAC_CLUSTER = "67cdef87-7bfc-4dae-b8e4-3ea9f8529156"
 RAC_INFOBASE = "c6a442bb-d7a9-4d8b-a274-37ea859b26c1"  # dev_erpapk_demo
 RUNS_DIR = os.path.join(ROOT, "tests")
 BASELINE = os.path.join(ROOT, "tests", "baseline", "baseline.json")
+# s004: отдельный baseline режима реальных авторов (статусы neg-*
+# не смешиваются с зондовыми)
+BASELINE_REAL = os.path.join(ROOT, "tests", "baseline", "baseline-real.json")
 BASELINE_HIST = os.path.join(ROOT, "tests", "baseline", "history")
 
 TIMEOUT_DUMP = 900          # факт T1: 207 c, запас x4
@@ -244,6 +247,24 @@ def patch_settings_for_web(args):
     return backup
 
 
+def patch_settings_for_real(args):
+    """s004 (TD-001): alwaysSubstitutePwd=true в настройках гейта.
+
+    Тот же канал доставки, что и web-патч: settings -> run.json ->
+    ПодготовитьПрогон -> Батч.ПодменятьПароль -> раннер. Гейт
+    --real-authors проверяет флаг в префлайте (exit 2 без него).
+    """
+    backup = GATE_SETTINGS + ".regress-bak"
+    shutil.copy2(GATE_SETTINGS, backup)
+    data = json.loads(io.open(GATE_SETTINGS, encoding="utf-8-sig").read())
+    data["alwaysSubstitutePwd"] = True
+    io.open(GATE_SETTINGS, "w", encoding="utf-8").write(
+        json.dumps(data, ensure_ascii=False, indent=1))
+    log("   gate-settings: alwaysSubstitutePwd=true (backup: %s)"
+        % os.path.basename(backup))
+    return backup
+
+
 def restore_settings(backup):
     if backup and os.path.exists(backup):
         shutil.copy2(backup, GATE_SETTINGS)
@@ -251,13 +272,16 @@ def restore_settings(backup):
         log("   gate-settings: восстановлены из backup")
 
 
-def run_gate(gate_timeout):
+def run_gate(gate_timeout, real_authors=False):
     t0 = time.time()
     gate_log = os.path.join(_dir, "gate-console.log")
+    cmd = [sys.executable, GATE]
+    if real_authors:
+        cmd.append("--real-authors")
     with io.open(gate_log, "w", encoding="utf-8") as fp:
         try:
             proc = subprocess.run(
-                [sys.executable, GATE], stdout=fp,
+                cmd, stdout=fp,
                 stderr=subprocess.STDOUT, timeout=gate_timeout,
                 cwd=ROOT)
             rc = proc.returncode
@@ -319,18 +343,20 @@ def diff_classes(base_scen, cur_scen):
     return out
 
 
-def read_baseline():
-    if not os.path.exists(BASELINE):
+def read_baseline(path=None):
+    path = path or BASELINE
+    if not os.path.exists(path):
         return None
     try:
-        return json.loads(io.open(BASELINE, encoding="utf-8-sig").read())
+        return json.loads(io.open(path, encoding="utf-8-sig").read())
     except Exception:
         return None
 
 
-def write_baseline(run_dir, summary):
-    os.makedirs(os.path.dirname(BASELINE), exist_ok=True)
-    old = read_baseline()
+def write_baseline(run_dir, summary, path=None):
+    path = path or BASELINE
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    old = read_baseline(path)
     if old:
         os.makedirs(BASELINE_HIST, exist_ok=True)
         hist = os.path.join(BASELINE_HIST,
@@ -347,7 +373,7 @@ def write_baseline(run_dir, summary):
             for s in summary.get("scenarios", [])],
         "runDir": os.path.relpath(run_dir, ROOT).replace("\\", "/"),
     }
-    io.open(BASELINE, "w", encoding="utf-8").write(
+    io.open(path, "w", encoding="utf-8").write(
         json.dumps(data, ensure_ascii=False, indent=1))
     return data
 
@@ -384,9 +410,13 @@ def build_report(run_dir, summary, base, gate_rc, rollback_ok, upd_kind):
         if summary:
             t = summary.get("totals", {})
             f.write(u"## Totals\n\n- сценариев: %s, passed: %s, failed: %s, "
-                    u"broken: %s, timeout: %s, unknown: %s\n\n"
+                    u"broken: %s, timeout: %s, unknown: %s\n"
                     % (t.get("scenarios"), t.get("passed"), t.get("failed"),
                        t.get("broken"), t.get("timeout"), t.get("unknown")))
+            if t.get("negativePassed") or t.get("negativeFailed"):
+                f.write(u"- негативные: neg-passed: %s, neg-failed: %s\n"
+                        % (t.get("negativePassed"), t.get("negativeFailed")))
+            f.write(u"\n")
         f.write(u"## Сценарии\n\n| Сценарий | Пользователь | Статус |"
                 u" vs baseline | Длит., с |\n|---|---|---|---|---|\n")
         for r in rows:
@@ -424,6 +454,10 @@ def main():
                         "только с --rehearsal)")
     ap.add_argument("--web-client", action="store_true",
                    help="T7 (FR-007): ТипКлиента=Web в VAParams батчей")
+    ap.add_argument("--real-authors", action="store_true",
+                   help="s004: режим реальных авторов (подмена паролей "
+                        "всегда, neg-батч, baseline-real.json; только с "
+                        "--rehearsal, взаимоисключаем с --web-client)")
     ap.add_argument("--web-url", default=WEB_URL_DEFAULT,
                    help="URL веб-публикации базы (по умолчанию %s)"
                         % WEB_URL_DEFAULT)
@@ -449,6 +483,19 @@ def main():
         log("REGRESS %s: ABORT: --baseline-dt допустим только с --rehearsal, "
             "база не менялась" % _ts)
         return EXIT_INFRA
+    if args.real_authors and not args.rehearsal:
+        log("REGRESS %s: ABORT: --real-authors допустим только с "
+            "--rehearsal, база не менялась" % _ts)
+        return EXIT_INFRA
+    if args.real_authors and args.web_client:
+        log("REGRESS %s: ABORT: --real-authors и --web-client "
+            "взаимоисключаемы (лицензия: тонкий+веб не одновременно; "
+            "FR-009 — отдельный эксклюзивный прогон), база не менялась"
+            % _ts)
+        return EXIT_INFRA
+    baseline_path = BASELINE_REAL if args.real_authors else BASELINE
+    if args.real_authors:
+        mode += " --real-authors"
     if args.baseline_dt:
         mode += " --baseline-dt %s" % args.baseline_dt
     if args.web_client:
@@ -492,7 +539,10 @@ def main():
         if args.web_client:
             upd_kind += " + web-client"
             settings_bak = patch_settings_for_web(args)
-        gate_rc = run_gate(args.gate_timeout)
+        if args.real_authors:
+            upd_kind += " + real-authors"
+            settings_bak = patch_settings_for_real(args)
+        gate_rc = run_gate(args.gate_timeout, real_authors=args.real_authors)
     finally:
         restore_settings(settings_bak)
         if jobs_deny_prev == "off":
@@ -504,21 +554,43 @@ def main():
                     " /S %s /N<админ> /RestoreIB \"%s\"" % (CONN, dump_dt))
 
     run_dir, summary = load_summary()
-    base = None if args.no_compare else read_baseline()
+    base = None if args.no_compare else read_baseline(baseline_path)
     regressions, rep_md = build_report(run_dir, summary, base,
                                         gate_rc, rollback_ok, upd_kind)
 
+    if gate_rc == 2:
+        log("REGRESS %s: гейт отказал в префлайте (exit 2: guard/rac/"
+            "settings) — INFRA, база не менялась" % _ts)
+        return EXIT_INFRA
+
+    totals = (summary or {}).get("totals", {})
     if args.set_baseline:
-        if summary and gate_rc == 0 and summary.get("totals", {}).get("failed", 1) == 0 \
-                and summary.get("totals", {}).get("broken", 1) == 0:
-            wb = write_baseline(run_dir, summary)
+        if args.real_authors:
+            base_ok = (summary and gate_rc == 0
+                       and totals.get("negativeFailed", 1) == 0
+                       and totals.get("negativePassed", 0) >= 1
+                       and totals.get("failed", 1) == 0
+                       and totals.get("broken", 1) == 0)
+        else:
+            base_ok = (summary and gate_rc == 0
+                       and totals.get("failed", 1) == 0
+                       and totals.get("broken", 1) == 0)
+        if base_ok:
+            wb = write_baseline(run_dir, summary, baseline_path)
             log("baseline обновлён: %s" % wb.get("baselineOf"))
         else:
             log("baseline НЕ обновлён: гейт не зелёный")
 
-    green = bool(summary) and gate_rc == 0 and \
-        summary.get("totals", {}).get("passed") == \
-        summary.get("totals", {}).get("scenarios")
+    if args.real_authors:
+        # s004 зелёность: позитивные прошли + все neg инвертированы в PASS
+        green = bool(summary) and gate_rc == 0 and \
+            totals.get("negativeFailed", 1) == 0 and \
+            totals.get("negativePassed", 0) >= 1 and \
+            (totals.get("passed", 0) + totals.get("negativePassed", 0)
+             == totals.get("scenarios"))
+    else:
+        green = bool(summary) and gate_rc == 0 and \
+            totals.get("passed") == totals.get("scenarios")
     code = EXIT_OK if (green and (args.no_compare or not base
                                   or regressions == 0)) else \
         (EXIT_RED if summary else EXIT_INFRA)
