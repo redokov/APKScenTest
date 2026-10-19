@@ -256,11 +256,13 @@ T5), baseline фиксируется в E2E (T5). Содержательное �
       exit=2 до дампа, база не менялась)
 - [x] Runbook: раздел baseline-dt + «снять свежий baseline-dt после
       зелёного прогона с обновлением» (§2 runbook)
-- [ ] E2E: `--rehearsal --baseline-dt tmp/regress/20261019-052456/pre-update.dt`
-      → 5/5, regressions=0, откат к исходному
+- [x] E2E: `--rehearsal --baseline-dt tmp/regress/20261019-052456/pre-update.dt`
+      → 5/5, regressions=0, откат к исходному (20261019-094315, exit=0,
+      46.2 мин; evidence: `tmp/regress/EVIDENCE-T9.md`)
 
 ### Acceptance Criteria
-- [ ] Прогон с baseline-dt зелёный; стартовое состояние идентично эталону
+- [x] Прогон с baseline-dt зелёный; стартовое состояние идентично эталону
+      (все 5 «=» vs run-20261019-053203)
 - [x] `--update` + `--baseline-dt` вместе → отказ с понятным сообщением
       (exit=2, 20261019-094259)
 
