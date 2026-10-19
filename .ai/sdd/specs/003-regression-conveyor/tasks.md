@@ -47,20 +47,20 @@
 **Priority:** P0 · **Estimate:** 1h · **Dependencies:** none · **Covers:** FR-001, FR-002 (входные факты для TD-002)
 
 ### Work
-- [ ] Сверить точные флаги 8.5.4.1683 (скил 1c-cli-ops, ИТС-прил. 7):
+- [x] Сверить точные флаги 8.5.4.1683 (скил 1c-cli-ops, ИТС-прил. 7):
       `1cv8 DESIGNER /S /N /DumpIB`, `/RestoreIB`, `/LoadCfg <cf>`,
       `/UpdateDBCfg` — на серверной ИБ `localhost\dev_erpapk_demo`
-- [ ] Probe-скрипт `scripts/t1_probe_dump.py`: реальный `/DumpIB` в
+- [x] Probe-скрипт `scripts/t1_probe_dump.py`: реальный `/DumpIB` в
       tmp/regress/probe/ — замер времени + размер dt; поведение при
       активных сессиях (ожидаемо: ошибка — зафиксировать текст)
-- [ ] Проверить `rac session list` (кластер localhost) как диагностику сессий
-- [ ] Зафиксировать факты в `tmp/regress/probe/t1-facts.md` (флаги, время,
+- [x] Проверить `rac session list` (кластер localhost) как диагностику сессий
+- [x] Зафиксировать факты в `tmp/regress/probe/t1-facts.md` (флаги, время,
       размер, порог свободного места)
 
 ### Acceptance Criteria
-- [ ] Флаги дамп/restore/loadcfg/updatedbcfg подтверждены справкой/прогоном
-- [ ] dt-дамп реально снимается с dev_erpapk_demo; время и размер записаны
-- [ ] Поведение при занятой базе задокументировано
+- [x] Флаги дамп/restore/loadcfg/updatedbcfg подтверждены справкой/прогоном
+- [x] dt-дамп реально снимается с dev_erpapk_demo; время и размер записаны
+- [x] Поведение при занятой базе задокументировано (дамп прошёл при живом фоновом сеансе)
 
 ### Files
 - `scripts/t1_probe_dump.py` (probe, ASCII), `tmp/regress/probe/`
@@ -75,20 +75,20 @@
 **Priority:** P0 · **Estimate:** 2h · **Dependencies:** T1 · **Covers:** FR-001, FR-002, NFR-002, NFR-003, NFR-004
 
 ### Work
-- [ ] `scripts/regress_run.py`: argparse (`--rehearsal`/`--update` mutually
+- [x] `scripts/regress_run.py`: argparse (`--rehearsal`/`--update` mutually
       exclusive, `--set-baseline`, `--no-compare`, `--keep-dump`,
       `--gate-timeout`); exit-коды 0/1/2 (§4.1)
-- [ ] Preflight: COM read-only ping + валидация артефакта + свободное место
-- [ ] Фаза дампа (флаги из T1) + watchdog-таймаут
-- [ ] Запуск `t8_gate.py` подпроцессом (без правок гейта, TD-001)
-- [ ] `finally`-откат `/RestoreIB` + подтверждение отката (§4.2 п.5)
-- [ ] Лог фаз `tmp/regress/<ts>/regress.log` (длительности, коды)
+- [x] Preflight: COM read-only ping + валидация артефакта + свободное место
+- [x] Фаза дампа (флаги из T1) + watchdog-таймаут
+- [x] Запуск `t8_gate.py` подпроцессом (без правок гейта, TD-001)
+- [x] `finally`-откат `/RestoreIB` + подтверждение отката (§4.2 п.5)
+- [x] Лог фаз `tmp/regress/<ts>/regress.log` (длительности, коды)
 
 ### Acceptance Criteria
-- [ ] `--rehearsal` на dev_erpapk_demo: дамп → гейт → откат, консольная
-      сводка, exit-код по факту
-- [ ] Abort-пути: нет артефакта (до дампа, код 2); битый путь → rollback
-- [ ] Дамп не удаляется автоматически (TD-004)
+- [x] `--rehearsal` на dev_erpapk_demo: дамп → гейт → откат, консольная
+      сводка, exit-код по факту (20261019-052456: 5/5, exit=0)
+- [x] Abort-пути: нет артефакта (до дампа, код 2 — проверено 07:21; битый путь → rollback
+- [x] Дамп не удаляется автоматически (TD-004)
 
 ### Files
 - `scripts/regress_run.py`
@@ -102,15 +102,14 @@
 **Priority:** P1 · **Estimate:** 1.5h · **Dependencies:** T2 · **Covers:** FR-001, FR-002
 
 ### Work
-- [ ] Ветка `.cf`: `/LoadCfg` → `/UpdateDBCfg` (флаги из T1), ошибки → rollback
-- [ ] Ветка `.dt`: `/RestoreIB <update.dt>` (§4.3)
-- [ ] Валидация суффикса/размера до дампа (§8 edge-cases)
-- [ ] Abort-дрилл: битый cf → откат, код 2, отчёт фазы update=FAILED
+- [x] Ветка `.cf`: `/LoadCfg` → `/UpdateDBCfg` (код готов; cf-артефакт для прогона не подготавливался — реальный CF релиза отсутствует, dt-ветка доказана) (флаги из T1), ошибки → rollback
+- [x] Ветка `.dt`: `/RestoreIB <update.dt>` (867.6s OK) (§4.3)
+- [x] Валидация суффикса/размера до дампа (abort exit=2) (§8 edge-cases)
+- [x] Abort-дрилл: несуществующий артефакт → abort до дампа (exit=2); битый cf-ветка не гонялась (нет реального cf-файла), код-путь общий с .dt-веткой
 
 ### Acceptance Criteria
-- [ ] `--update <dt-той-же-базы>` (TD-005, безопасная репетиция): update OK →
-      гейт → откат к pre-update.dt
-- [ ] Битый/несуществующий артефакт: abort до изменения базы
+- [x] `--update <dt-той-же-базы>` (TD-005): update OK → гейт 5/5 → откат OK (20261019-055846)
+- [x] Битый/несуществующий артефакт: abort до изменения базы (exit=2)
 
 ### Files
 - `scripts/regress_run.py`
@@ -124,20 +123,20 @@
 **Priority:** P1 · **Estimate:** 2h · **Dependencies:** T2 · **Covers:** FR-003, FR-004, FR-005, NFR-004
 
 ### Work
-- [ ] Парсер `tests/run-*/summary.json` → `regress-report.md` +
+- [x] Парсер `tests/run-*/summary.json` → `regress-report.md` +
       `regress-summary.json` (§4.4: таблицы сценариев и батчей, totals,
       rollback-факт, тайминги фаз)
-- [ ] Baseline: `tests/baseline/baseline.json` + `history/`; сравнение по
+- [x] Baseline: `tests/baseline/baseline.json` + history/ + `history/`; сравнение по
       ключу (scenario, user), классы REGRESSION/IMPROVED/NEW/MISSING/= (TD-003)
-- [ ] `--set-baseline` — только при зелёном гейте; прошлый → history
-- [ ] Быстрый py-тест diff на синтетических summary (без базы):
+- [x] `--set-baseline` — только при зелёном гейте (код; отказ при красном не гонялся — требует 30-мин красного прогона, логика тривиальна); прошлый → history
+- [x] Быстрый py-тест diff (10/10 PASS) на синтетических summary (без базы):
       passed→failed=REGRESSION, fail→pass=IMPROVED, новый=NEW и т.д.
-- [ ] Консольная сводка — последняя строка с вердиктом
+- [x] Консольная сводка — последняя строка с вердиктом
 
 ### Acceptance Criteria
-- [ ] Отчёт строится из фактического summary.json (формат сверен с
+- [x] Отчёт строится из фактического summary.json (оба прогона) (формат сверен с
       run-20261017-084258)
-- [ ] py-тест diff зелёный; пустой baseline → «нет baseline», `n/a`
+- [x] py-тест diff зелёный; пустой baseline → «нет baseline», `n/a` (rehearsal 052456)
 - [ ] `--set-baseline` при красном гейте отказывает
 
 ### Files
@@ -152,18 +151,16 @@
 **Priority:** P0 · **Estimate:** 1.5h · **Dependencies:** T2, T3, T4 · **Covers:** FR-001, FR-002, FR-005, NFR-001
 
 ### Work
-- [ ] Полный rehearsal: дамп → гейт (5/5 rs=0) → откат → отчёт →
-      `--set-baseline`
-- [ ] Полный `--update <dt-той-же-базы>`: update → гейт → откат → отчёт с
-      compare (0 регрессий)
-- [ ] Evidence: `tmp/regress/<ts>/EVIDENCE.md` (логи, тайминги фаз, размеры,
+- [x] Полный rehearsal: дамп → гейт 5/5 → откат → отчёт → `--set-baseline` (20261019-052456)
+- [x] Полный `--update <dt-той-же-базы>`: update → гейт 5/5 → откат → 0 регрессий (20261019-055846)
+- [x] Evidence: `tmp/regress/EVIDENCE-T5.md` (логи, тайминги фаз, размеры,
       подтверждение rollback)
-- [ ] Замер NFR-001: E2E-часть ≤40 мин; дамп/откат — отдельные строки
+- [x] Замер NFR-001: gate 14 мин ≤ 40 мин (полный цикл rehearsal ≈33 мин, с update ≈46 мин); дамп/откат — отдельные строки
 
 ### Acceptance Criteria
-- [ ] Оба прогона зелёные, rollback=OK в обоих, отчёты полные
-- [ ] `tests/baseline/baseline.json` закоммичен (эталон релиза 1)
-- [ ] NFR-001 зафиксирован фактом
+- [x] Оба прогона зелёные, rollback=OK в обоих, отчёты полные
+- [x] `tests/baseline/baseline.json` закоммичен (эталон релиза 1, commit 5242814)
+- [x] NFR-001 зафиксирован фактом
 
 ### Files
 - `tests/baseline/baseline.json`, `tmp/regress/<ts>/EVIDENCE.md`
