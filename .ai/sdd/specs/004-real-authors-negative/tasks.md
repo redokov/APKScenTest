@@ -12,8 +12,8 @@
 | FR-001 | T7, T8 | real-ветка гейта + флаг/манифест |
 | FR-002 | T4, T5, T10 | подмена всегда + обе ветки восстановления + finally-дрилл |
 | FR-003 | T8, T7 | два рубежа rac |
-| FR-004 | T2, T3, T6, T7 | CFE-роль + состав + neg-батч |
-| FR-005 | T1, T3, T4, T6 | ПАТТЕРНОТКАЗА + инверсия вердикта |
+| FR-004 | T1, T6, T7 | neg-состав (5 ролей) + neg-батч; micro-CFE исключён по фактам |
+| FR-005 | T1, T4, T6 | ПАТТЕРНОТКАЗА («Нарушение прав доступа») + инверсия вердикта |
 | FR-006 | T4, T8 | pwdSubstituted/restored per-user, негатив-флаг |
 | FR-007 | T8, T10 | baseline-real.json + зелёность |
 | FR-008 | T9 | runbook |
@@ -38,16 +38,16 @@
 
 | Task | Title | Priority | Estimate | Dependencies | Status |
 |------|-------|----------|----------|--------------|--------|
-| T1 | Зонды среды: rac-формат, XML-аудит БазовыеПраваБСП, предварительный текст отказа | P0 | 1h | none | pending |
-| T2 | micro-CFE АпкСценТестНегРоль: scaffold → load → round-trip → применимость | P0 | 1.5h | none | pending |
-| T3 | Зонд-блокер: роль CFE из COM (видимость/назначаемость) + финальный ПАТТЕРНОТКАЗА | P0 | 1h | T2 | pending |
+| T1 | Зонды среды: rac-формат, XML-аудит БазовыеПраваБСП, neg-состав, ПАТТЕРНОТКАЗА | P0 | 1h | none | **done** (факты `tmp/s004/facts-probe-env.md`, `facts-neg-composition.md`) |
+| ~~T2~~ | ~~micro-CFE АпкСценТестНегРоль~~ — ОТМЕНЁН по фактам (neg-роль не нужна) | — | — | — | cancelled |
+| ~~T3~~ | ~~Зонд-блокер CFE-роли~~ — неактуален (micro-CFE исключён) | — | — | — | cancelled |
 | T4 | ObjectModule.bsl: ПодменитьПарольБезусловно, ветка восстановления, флаг батча, guard, отчёт | P0 | 2h | none | pending |
 | T5 | Раннеры (target + t6-зеркало): ветка подмены, pwdSubstituted, пересборка, smoke зондового режима | P0 | 2h | T4 | pending |
 | T6 | neg-шаблон neg-pl-denied.feature (запись/проведение ПЛ) | P1 | 1h | T1 | pending |
-| T7 | t8_gate.py: real-ветка (skip restrict, smoke-нормализация, neg-объекты, verify_real) | P0 | 2h | T2, T3, T5 | pending |
+| T7 | t8_gate.py: real-ветка (skip restrict, smoke-нормализация, neg-пользователь, verify_real) | P0 | 2h | T5 | pending |
 | T8 | regress_run.py: --real-authors, rac_sessions_online, guard-check, BASELINE_REAL, отчёт | P0 | 2h | T7 | pending |
 | T9 | runbook FR-008 + FR-009 | P1 | 30m | T8 | pending |
-| T10 | E2E: rehearsal real-authors + baseline-dt, краш-дрилл, чистый повтор, NFR-001, --set-baseline | P0 | 3h | T1..T9 | pending |
+| T10 | E2E: rehearsal real-authors + baseline-dt, краш-дрилл, чистый повтор, NFR-001, --set-baseline | P0 | 3h | T4..T9 | pending |
 
 ```mermaid
 flowchart LR
