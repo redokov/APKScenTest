@@ -220,11 +220,12 @@
       авторы (снятие D-001) + (д) негативные сценарии; животноводство и
       планирование — бэклог; arm-fuel-expense-авто — остаётся never
 - [x] Фиксация решений в `.ai/sdd/PLAN.md` (Фаза 5 / roadmap v2)
-- [ ] Ретро-раздел PLAN.md отревьюен пользователем
+- [x] Ретро-раздел PLAN.md отревьюен пользователем (подтверждено 2026-10-19,
+      «делай»)
 
 ### Acceptance Criteria
-- [ ] PLAN.md дополнен разделом ретро с явными решениями или отложенными
-      вопросами
+- [x] PLAN.md дополнен разделом ретро с явными решениями или отложенными
+      вопросами (Фаза 5 / roadmap v2)
 
 ### Files
 - `.ai/sdd/PLAN.md`
@@ -248,18 +249,20 @@ T5), baseline фиксируется в E2E (T5). Содержательное �
 **Priority:** P1 · **Estimate:** 2h · **Dependencies:** T5 · **Covers:** TD-007 (design.md §13)
 
 ### Work
-- [ ] `regress_run.py`: флаг `--baseline-dt <file>`: дамп текущего →
+- [x] `regress_run.py`: флаг `--baseline-dt <file>`: дамп текущего →
       RestoreIB baseline-dt → гейт → откат к дампу текущего (finally)
-- [ ] Взаимоисключаемость с `--update` (RestoreIB затёр бы обновление);
-      `--rehearsal --baseline-dt` — рабочий режим
-- [ ] Runbook: раздел baseline-dt + «снять свежий baseline-dt после
-      зелёного прогона с обновлением»
+- [x] Взаимоисключаемость с `--update` (RestoreIB затёр бы обновление);
+      `--rehearsal --baseline-dt` — рабочий режим (дрилль 09:42: оба отказа
+      exit=2 до дампа, база не менялась)
+- [x] Runbook: раздел baseline-dt + «снять свежий baseline-dt после
+      зелёного прогона с обновлением» (§2 runbook)
 - [ ] E2E: `--rehearsal --baseline-dt tmp/regress/20261019-052456/pre-update.dt`
       → 5/5, regressions=0, откат к исходному
 
 ### Acceptance Criteria
 - [ ] Прогон с baseline-dt зелёный; стартовое состояние идентично эталону
-- [ ] `--update` + `--baseline-dt` вместе → отказ с понятным сообщением
+- [x] `--update` + `--baseline-dt` вместе → отказ с понятным сообщением
+      (exit=2, 20261019-094259)
 
 ### Files
 - `scripts/regress_run.py`, `docs/runbook.md`
