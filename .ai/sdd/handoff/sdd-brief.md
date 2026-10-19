@@ -1,14 +1,14 @@
 # SDD Handoff Brief: Спека 003 — Регресс-конвейер
 
-> Status: Ready for implementation
-> Readiness: requirements + design + tasks approved
-> Updated: 2026-10-18
+> Status: Reviewed — Approved with follow-ups
+> Readiness: реализация завершена (T1–T6, T8, T9), review пройден
+> Updated: 2026-10-19
 
 ## Metadata
 
 - **Spec ID:** `003-regression-conveyor`
 - **Spec Path:** `.ai/sdd/specs/003-regression-conveyor/`
-- **Current .status:** `tasks:approved`
+- **Current .status:** `review:done`
 - **Source Inputs:** `.ai/sdd/PLAN.md` (Фаза 4, D7), `docs/next-session-prompt.md`,
   `docs/night-report-2026-10-17.md` (спеки 001–002 завершены)
 
@@ -72,17 +72,23 @@ T4: python scripts/test_regress_diff.py (синтетика diff-классов)
 
 ## Review / Release Notes
 
-- **Review Artifact:** not yet
-- **Review Verdict:** Not reviewed
-- **Known Follow-ups:** T7 веб-клиент (GUI-вопрос перед стартом), T8 ретро
-  релиза 2 (с пользователем), carried-девиации: авто-ПЛ `when: never`,
-  статичный окт-2026.
+- **Review Artifact:** `.ai/sdd/specs/003-regression-conveyor/review.md` (Final, 2026-10-19)
+- **Review Verdict:** Approved with follow-ups
+- **Verification evidence:** rehearsal 20261019-052456 (exit 0),
+  update-репетиция 20261019-055846 (regressions=0), baseline-dt E2E
+  20261019-094315 (5/5, exit 0); abort-дрилли exit=2 ×3;
+  test_regress_diff 10/10; EVIDENCE-T5/T7/T9 в tmp/regress/
+- **Known Follow-ups:** TIMEOUT_RESTORE→3000 с (Issue 1 review);
+  повторить веб-прогон T7 при лицензии ≥3 одновременных мест
+  (сейчас ELicenceNotFound/1 seat — среда); снять свежий baseline-dt после
+  зелёного прогона с обновлением релиза 2; релиз 2 = реальные авторы +
+  негативные сценарии (PLAN.md Фаза 5).
 
 ## Handoff Readiness
 
-- **Ready for Implementation:** yes
-- **Ready for QA:** no (после T5)
-- **Ready for Release:** no (после T6+review)
+- **Ready for Implementation:** done
+- **Ready for QA:** yes (runbook + отчёты)
+- **Ready for Release:** yes для конвейера; веб-клиент — pending лицензия
 
 ## Дисциплина реализации (переносится)
 
