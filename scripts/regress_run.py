@@ -103,6 +103,14 @@ def preflight(args):
         if not p.lower().endswith((".cf", ".dt")):
             log("[preflight] FAIL: неизвестный тип артефакта (нужен .cf/.dt): %s" % p)
             return False
+    if args.baseline_dt:
+        p = args.baseline_dt
+        if not os.path.isfile(p) or os.path.getsize(p) < 1024 * 1024:
+            log("[preflight] FAIL: baseline-dt не найден/пуст: %s" % p)
+            return False
+        if not p.lower().endswith(".dt"):
+            log("[preflight] FAIL: baseline-dt должен быть .dt: %s" % p)
+            return False
     try:
         import win32com.client
         agent = win32com.client.Dispatch("V85.COMConnector").Connect(
@@ -143,6 +151,15 @@ def do_update(path, dump_dt):
         kind = "cf-loadcfg+updatedbcfg"
     phase("update", time.time() - t0, "" if ok else "FAILED")
     return ok, kind
+
+
+def do_baseline_restore(path):
+    """TD-007: RestoreIB known-good dt перед гейтом (design.md §13)."""
+    t0 = time.time()
+    ok, code, tail = designer(["/RestoreIB", path], "baseline-restore.log",
+                              TIMEOUT_UPDATE)
+    phase("baseline-restore", time.time() - t0, "OK" if ok else "FAILED")
+    return ok
 
 
 def do_rollback(dump_dt):
@@ -321,6 +338,9 @@ def main():
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--rehearsal", action="store_true")
     g.add_argument("--update", metavar="PATH.cf|dt")
+    ap.add_argument("--baseline-dt", metavar="FILE.dt",
+                   help="RestoreIB known-good dt перед гейтом (TD-007, "
+                        "только с --rehearsal)")
     ap.add_argument("--set-baseline", action="store_true")
     ap.add_argument("--no-compare", action="store_true")
     ap.add_argument("--gate-timeout", type=int, default=TIMEOUT_GATE)
@@ -334,6 +354,17 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
 
     mode = ("--update %s" % args.update) if args.update else "--rehearsal"
+    if args.update and args.baseline_dt:
+        log("REGRESS %s: ABORT: --baseline-dt и --update взаимоисключаемы "
+            "(RestoreIB baseline-dt затёр бы обновление), база не менялась"
+            % _ts)
+        return EXIT_INFRA
+    if args.baseline_dt and not args.rehearsal:
+        log("REGRESS %s: ABORT: --baseline-dt допустим только с --rehearsal, "
+            "база не менялась" % _ts)
+        return EXIT_INFRA
+    if args.baseline_dt:
+        mode += " --baseline-dt %s" % args.baseline_dt
     log("REGRESS %s start: %s" % (_ts, mode))
 
     if not preflight(args):
@@ -351,6 +382,11 @@ def main():
             log("REGRESS %s: ABORT (dump FAILED), база не менялась" % _ts)
             return EXIT_INFRA
         dumped = True
+        if args.baseline_dt:
+            upd_kind = "rehearsal + baseline-dt"
+            if not do_baseline_restore(args.baseline_dt):
+                log("REGRESS %s: baseline-restore FAILED -> откат" % _ts)
+                return EXIT_INFRA
         if args.update:
             update_ok, upd_kind = do_update(args.update, dump_dt)
             if not update_ok:
