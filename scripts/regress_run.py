@@ -212,7 +212,7 @@ def rac_jobs_deny_set(on):
         rc = subprocess.run(
             [RAC, "infobase", "update", "--cluster=" + RAC_CLUSTER,
              "--infobase=" + RAC_INFOBASE,
-             "scheduled-jobs-deny=" + ("on" if on else "off")],
+             "--scheduled-jobs-deny=" + ("on" if on else "off")],
             capture_output=True, timeout=60)
     except Exception as e:
         log("   rac infobase update FAIL: %s" % str(e)[:150])
