@@ -80,6 +80,12 @@ SMOKE_TEMPLATE_FILE = os.path.join(ROOT, "tests", "templates", "00-smoke.feature
 REAL_TEMPLATES = ["00-smoke", "01-pl-tractor",
                   "arm-fuel-receipt", "arm-payroll", "arm-fuel-expense"]
 
+# s004 blocker-A: нейтральный сервисный пользователь runner-сессий.
+# Батч под той же учёткой, что раннер (same-user TestClient), виснет;
+# инвариант: runner identity != любой пользователь батча.
+MANAGER_USER = "АпкСценТест_Менеджер"
+MANAGER_FULLNAME = "Менеджер раннеров s004 (удаляется)"
+
 # s004: режим реальных авторов — флаг CLI; guard-файлы парольной опасности
 REAL_MODE = "--real-authors" in sys.argv
 GUARD_DIR = os.path.join(ROOT, "tests", "pwd-guard")
@@ -170,6 +176,30 @@ def create_user(agent, users, name):
     h1 = find_user(users, name).СохраняемоеЗначениеПароля
     log("[setup] %s создан (роли: %s), H1 len=%d" % (name, "+".join(NEED_ROLES), len(h1)))
     return h1
+
+
+def create_manager_user(agent, users):
+    """s004 blocker-A: нейтральный сервисный пользователь runner-сессий.
+
+    По образцу create_user, отличия: без пароля, без элемента
+    справочника «Пользователи» (БСП авто-регистрирует при первом
+    входе — паттерн Зонд1/Зонд2).
+    """
+    old = find_user(users, MANAGER_USER)
+    if old is not None:
+        old.Удалить()
+    u = users.СоздатьПользователя()
+    u.Имя = MANAGER_USER
+    u.ПолноеИмя = MANAGER_FULLNAME
+    md_roles = agent.Метаданные.Роли
+    for rn in NEED_ROLES:
+        u.Роли.Добавить(getattr(md_roles, rn))
+    try:
+        u.ЗащитаОтОпасныхДействий.ПредупреждатьОбОпасныхДействиях = False
+    except Exception as e:
+        log("[setup] ЗОД off fail (%s): %s" % (MANAGER_USER, str(e)[:80]))
+    u.Записать()
+    log("[setup] %s создан (роли: %s, без пароля)" % (MANAGER_USER, "+".join(NEED_ROLES)))
 
 
 def delete_user(users, name):
@@ -438,7 +468,7 @@ def read_json(path):
         return None
 
 
-def run_1c_session(runner_epf, timeout, client_log, result_file=None):
+def run_1c_session(runner_epf, timeout, client_log, result_file=None, usr=ADMIN):
     """Старт 1cv8 /Execute runner-EPF с UIA-watchdog и ожиданием завершения.
 
     Если задан result_file - драйвер выходит по step=done (паттерн T6/T7:
@@ -446,7 +476,7 @@ def run_1c_session(runner_epf, timeout, client_log, result_file=None):
     """
     fp = open(client_log, "wb")
     proc = subprocess.Popen(
-        [V8, "/S", CONN, "/RunModeManagedApplication", "/N", ADMIN,
+        [V8, "/S", CONN, "/RunModeManagedApplication", "/N", usr,
          "/DisableStartupDialogs", "/Execute", runner_epf],
         stdout=fp, stderr=subprocess.STDOUT)
     try:
@@ -597,6 +627,11 @@ def main():
     snapshot = {}
     ok = False
     try:
+        # s004 blocker-A: нейтральный сервисный пользователь runner-сессий
+        # (только real-режим); батчи под ADMIN виснут (same-user TestClient)
+        runner_usr = MANAGER_USER if REAL_MODE else ADMIN
+        if REAL_MODE:
+            create_manager_user(agent, users)
         # --- Stage A: конвейер генерации -------------------------------
         log("[stage-a] запуск конвейера генерации (НачатьПрогон->...->Фичи)")
         with io.open(STAGE_A_TASK, "w", encoding="utf-8") as f:
@@ -607,7 +642,7 @@ def main():
         wd = start_watchdog(TIMEOUT_STAGE_A + 60, "watchdog-a.log")
         try:
             if not run_1c_session(STAGE_A_EPF, TIMEOUT_STAGE_A, STAGE_A_LOG,
-                                   STAGE_A_RESULT):
+                                   STAGE_A_RESULT, usr=runner_usr):
                 log("[stage-a] FAIL: клиентская сессия не завершилась")
                 return finish(False)
         finally:
@@ -646,6 +681,10 @@ def main():
             authors, err = prepare_real_manifest(run_dir, checks)
             if err:
                 log("[real] FAIL: %s" % err)
+                return finish(False)
+            # s004 blocker-A: runner identity не должен совпадать с автором
+            if MANAGER_USER in authors:
+                log("[real] FAIL: менеджер совпадает с автором батча")
                 return finish(False)
             snapshot = real_snapshot(agent, users, authors)
             for name in authors:
@@ -696,7 +735,7 @@ def main():
                 log("[stage-b] попытка %d" % attempt)
                 if not run_1c_session(T6_EPF, timeout_batches,
                                       os.path.join(ROOT, "tmp", "t6", "client.log"),
-                                      T6_RESULT):
+                                      T6_RESULT, usr=runner_usr):
                     log("[stage-b] FAIL: клиентская сессия не завершилась")
                     return finish(False)
                 data_b = read_json(T6_RESULT)
@@ -736,7 +775,7 @@ def main():
         try:
             if not run_1c_session(T7_EPF, TIMEOUT_REPORT,
                                   os.path.join(ROOT, "tmp", "t7", "client.log"),
-                                  T7_RESULT):
+                                  T7_RESULT, usr=runner_usr):
                 log("[stage-c] FAIL: клиентская сессия не завершилась")
                 return finish(False)
         finally:
@@ -787,6 +826,11 @@ def main():
                 rac_terminate_ib_sessions(only_user=NEG_USER)
             except Exception as e:
                 log("[cleanup] rac-terminate %s: %s" % (NEG_USER, str(e)[:100]))
+            # s004 blocker-A: зомби-сеансы сервисного менеджера
+            try:
+                rac_terminate_ib_sessions(only_user=MANAGER_USER)
+            except Exception as e:
+                log("[cleanup] rac-terminate %s: %s" % (MANAGER_USER, str(e)[:100]))
             try:
                 agent2 = win32com.client.Dispatch("V85.COMConnector").Connect(
                     conn_str(ADMIN, ""))
@@ -794,7 +838,7 @@ def main():
                 del agent2
             except Exception as e:
                 log("[cleanup] справочник Пользователи: %s" % str(e)[:120])
-        cleanup_names = [NEG_USER] if REAL_MODE else [ZOND1, ZOND2]
+        cleanup_names = [NEG_USER, MANAGER_USER] if REAL_MODE else [ZOND1, ZOND2]
         for name in cleanup_names:
             for attempt in (1, 2):
                 try:
