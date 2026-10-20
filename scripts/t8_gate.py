@@ -633,7 +633,11 @@ def main():
         # --- Ограничение E2E: временные пользователи --------------------
         if REAL_MODE:
             # s004: реальные авторы (restrict_manifest не выполняется),
-            # второй рубеж rac-проверки ПОСЛЕ Stage A (окно могло открыться)
+            # второй рубеж rac-проверки ПОСЛЕ Stage A. Сеанс раннера
+            # Stage A (он же ADMIN) мог задержаться в rac после
+            # step=done — терминируем lingering 1CV8-сеансы нашей базы
+            # (префлайт гарантировал 0 внешних) и перепроверяем.
+            rac_terminate_ib_sessions()
             sessions, rac_err = rac_sessions_online()
             if rac_err or sessions:
                 log("[real] FAIL: онлайн-сеансы после Stage A: %s"
