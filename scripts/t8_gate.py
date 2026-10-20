@@ -75,6 +75,10 @@ NEG_ROLES = ["АдминистраторСистемы", "БазовыеПрав
 NEG_TEMPLATE = "neg-pl-denied"
 NEG_TEMPLATE_FILE = os.path.join(ROOT, "tests", "templates", "neg-pl-denied.feature")
 SMOKE_TEMPLATE_FILE = os.path.join(ROOT, "tests", "templates", "00-smoke.feature")
+# s004: real-режим переносит РЕПЕТИЦИОННЫЙ (валидированный) набор шаблонов
+# на реальных авторов; невалидированные (02/03/04/05) - pending (runbook §6)
+REAL_TEMPLATES = ["00-smoke", "01-pl-tractor",
+                  "arm-fuel-receipt", "arm-payroll", "arm-fuel-expense"]
 
 # s004: режим реальных авторов — флаг CLI; guard-файлы парольной опасности
 REAL_MODE = "--real-authors" in sys.argv
@@ -264,8 +268,45 @@ def guard_clear(run_id):
         os.remove(path)
 
 
+def rac_terminate_ib_sessions(only_user=None):
+    """Терминирует зомби-сеансы тонкого клиента (app-id 1CV8) нашей базы.
+
+    COM-соединения (гейт) не трогаем. only_user - фильтр по имени.
+    Возвращает количество терминированных.
+    """
+    out = subprocess.run([RAC, "session", "list", "--cluster=" + RAC_CLUSTER],
+                         capture_output=True, timeout=60)
+    txt = out.stdout.decode("cp866", errors="replace")
+    killed = 0
+    for block in txt.split("\n\n"):
+        f = {}
+        for line in block.splitlines():
+            if ":" in line:
+                k, _, v = line.partition(":")
+                f[k.strip()] = v.strip()
+        if f.get("infobase") != RAC_INFOBASE or f.get("app-id") != "1CV8":
+            continue
+        if only_user and f.get("user-name") != only_user:
+            continue
+        suuid = f.get("session", "")
+        if suuid:
+            r = subprocess.run([RAC, "session", "terminate",
+                                "--cluster=" + RAC_CLUSTER,
+                                "--session=" + suuid], capture_output=True, timeout=30)
+            if r.returncode == 0:
+                killed += 1
+    return killed
+
+
 def create_neg_user(agent, users):
-    """Негативный пользователь: 5 СУЩЕСТВУЮЩИХ ролей (TD-002), без Апк-прав."""
+    """Негативный пользователь: 5 СУЩЕСТВУЮЩИХ ролей (TD-002), без Апк-прав.
+
+    БСП-блок: пользователь с правом Администрирование без ПолныхПрав
+    обязан быть зарегистрирован в справочнике Пользователи
+    (ПользователиСлужебный.ПриАвторизацииПользователяИБ, ERPsrc) —
+    регистрируем элемент вручную (зонды обходили это через
+    авторегистрацию БСП: ПолныеПрава+АдмСистемы). Удаляется в cleanup.
+    """
     md_roles = agent.Метаданные.Роли
     for rn in NEG_ROLES:
         if getattr(md_roles, rn, None) is None:
@@ -285,9 +326,38 @@ def create_neg_user(agent, users):
         log("[setup] ЗОД off fail (%s): %s" % (NEG_USER, str(e)[:80]))
     u.Записать()
     h1 = find_user(users, NEG_USER).СохраняемоеЗначениеПароля
-    log("[setup] %s создан (роли: %s), H1 len=%d"
-        % (NEG_USER, "+".join(NEG_ROLES), len(h1)))
+    # s004: регистрация в справочнике Пользователи (обход БСП-блока)
+    neg_uuid = find_user(users, NEG_USER).УникальныйИдентификатор
+    spr = agent.Справочники.Пользователи
+    q = agent.NewObject("Query")
+    q.Text = ("ВЫБРАТЬ Пользователи.Ссылка ИЗ Справочник.Пользователи "
+              "КАК Пользователи ГДЕ Пользователи.Наименование = &Имя")
+    q.УстановитьПараметр("Имя", NEG_FULLNAME)
+    sel = q.Execute().Choose()
+    while sel.Next():
+        sel.Ссылка.ПолучитьОбъект().Удалить()
+    el = spr.СоздатьЭлемент()
+    el.Наименование = NEG_FULLNAME
+    el.ИдентификаторПользователяИБ = neg_uuid
+    el.Записать()
+    log("[setup] %s создан (роли: %s, зарегистрирован в справочнике "
+        "Пользователи), H1 len=%d" % (NEG_USER, "+".join(NEG_ROLES), len(h1)))
     return h1
+
+
+def delete_neg_catalog_element(agent):
+    """Удаляет элемент справочника Пользователи neg-пользователя."""
+    q = agent.NewObject("Query")
+    q.Text = ("ВЫБРАТЬ Пользователи.Ссылка ИЗ Справочник.Пользователи "
+              "КАК Пользователи ГДЕ Пользователи.Наименование = &Имя")
+    q.УстановитьПараметр("Имя", NEG_FULLNAME)
+    sel = q.Execute().Choose()
+    n = 0
+    while sel.Next():
+        sel.Ссылка.ПолучитьОбъект().Удалить()
+        n += 1
+    if n:
+        log("[cleanup] справочник Пользователи: удалено элементов neg: %d" % n)
 
 
 def prepare_real_manifest(run_dir, checks):
@@ -303,6 +373,15 @@ def prepare_real_manifest(run_dir, checks):
     files = manifest.get("files") or []
     if not files:
         return None, "сгенерированный манифест пуст"
+    # s004: репетиционный allowlist — переносим валидированный набор
+    dropped = sorted(set(e.get("template", "") for e in files
+                         if e.get("template") not in REAL_TEMPLATES))
+    files = [e for e in files if e.get("template") in REAL_TEMPLATES]
+    if not files:
+        return None, "после фильтра REAL_TEMPLATES манифест пуст"
+    if dropped:
+        log("[real] невалидированные шаблоны отложены (runbook §6): %s"
+            % ", ".join(dropped))
     fdir = os.path.join(run_dir, "features")
 
     # D-003: smoke как первый батч под первым автором
@@ -593,20 +672,25 @@ def main():
         # --- Stage B: батчи T6-раннером --------------------------------
         # Ретрай: сбой подключения TestClient (rs=2) недетерминирован
         # (T6: холодный старт / модальное окно); до 2 запусков стадии.
-        log("[stage-b] батчи (T6-механизм: порты, сироты, finally)")
+        # s004: real-режим — батчи больше (автор+neg), таймауты шире
+        # (пер-батч 1200 c, стадия 3600 c).
+        timeout_batches = 3600 if REAL_MODE else TIMEOUT_BATCHES
+        per_batch = 1200 if REAL_MODE else 0
+        log("[stage-b] батчи (T6-механизм: порты, сироты, finally)"
+            + (" [real] пер-батч таймаут %d c" % per_batch if REAL_MODE else ""))
         with io.open(T6_TASK, "w", encoding="utf-8") as f:
             json.dump({"target": TARGET, "runDir": run_dir,
-                       "timeoutOverrideSec": 0}, f, ensure_ascii=False)
+                       "timeoutOverrideSec": per_batch}, f, ensure_ascii=False)
         if os.path.exists(T6_RESULT):
             os.remove(T6_RESULT)
-        wd = start_watchdog(TIMEOUT_BATCHES * 2 + 120, "watchdog-b.log")
+        wd = start_watchdog(timeout_batches * 2 + 120, "watchdog-b.log")
         data_b = None
         try:
             for attempt in (1, 2):
                 if os.path.exists(T6_RESULT):
                     os.remove(T6_RESULT)
                 log("[stage-b] попытка %d" % attempt)
-                if not run_1c_session(T6_EPF, TIMEOUT_BATCHES,
+                if not run_1c_session(T6_EPF, timeout_batches,
                                       os.path.join(ROOT, "tmp", "t6", "client.log"),
                                       T6_RESULT):
                     log("[stage-b] FAIL: клиентская сессия не завершилась")
@@ -664,6 +748,12 @@ def main():
 
         # COM-соединение жило ~30 минут (stage-a/b/c) и может упасть -
         # для verify/cleanup берём свежее
+        # s004: чистим зомби-сеансы тонкого клиента (kill-tree мог
+        # оставить их вrac) — до Stage C и verify
+        if REAL_MODE:
+            z = rac_terminate_ib_sessions()
+            if z:
+                log("[real] терминировано зомби-сеансов 1CV8: %d" % z)
         try:
             agent = win32com.client.Dispatch("V85.COMConnector").Connect(conn_str(ADMIN, ""))
             users = agent.ПользователиИнформационнойБазы
@@ -686,6 +776,20 @@ def main():
             guard_clear(run_id)
             log("[real] guard снят (прогон зелёный)")
     finally:
+        if REAL_MODE:
+            # s004: neg-пользователь - зомби-сеансы, элемент справочника,
+            # сам пользователь
+            try:
+                rac_terminate_ib_sessions(only_user=NEG_USER)
+            except Exception as e:
+                log("[cleanup] rac-terminate %s: %s" % (NEG_USER, str(e)[:100]))
+            try:
+                agent2 = win32com.client.Dispatch("V85.COMConnector").Connect(
+                    conn_str(ADMIN, ""))
+                delete_neg_catalog_element(agent2)
+                del agent2
+            except Exception as e:
+                log("[cleanup] справочник Пользователи: %s" % str(e)[:120])
         cleanup_names = [NEG_USER] if REAL_MODE else [ZOND1, ZOND2]
         for name in cleanup_names:
             for attempt in (1, 2):
