@@ -228,6 +228,46 @@ def rac_jobs_deny_set(on):
     return ok
 
 
+def rac_ib_sessions_terminate():
+    """Терминировать ВСЕ сеансы dev_erpapk_demo (инцидент 21.10:
+    фоновые задания, стартовавшие до scheduled-jobs-deny, держат
+    эксклюзивную блокировку дампа). Возвращает число живых сеансов
+    ИБ ПОСЛЕ попытки (0 = чисто)."""
+    try:
+        out = subprocess.run(
+            [RAC, "session", "list", "--cluster=" + RAC_CLUSTER],
+            capture_output=True, timeout=60)
+    except Exception as e:
+        log("   rac session list FAIL: %s" % str(e)[:150])
+        return -1
+    txt = out.stdout.decode("cp866", errors="replace")
+    sids = []
+    for block in txt.split("\n\n"):
+        fields = {}
+        for line in block.splitlines():
+            if ":" in line:
+                k, _, v = line.partition(":")
+                fields[k.strip()] = v.strip()
+        if fields.get("infobase") == RAC_INFOBASE and fields.get("session-id"):
+            sids.append((fields["session-id"], fields.get("app-id", "")))
+    for sid, app in sids:
+        r = subprocess.run(
+            [RAC, "session", "terminate", "--cluster=" + RAC_CLUSTER,
+             "--session=" + sid], capture_output=True, timeout=30)
+        if r.returncode != 0:
+            log("   session terminate %s (%s) FAIL rc=%s"
+                % (sid, app, r.returncode))
+    # перепроверка
+    out2 = subprocess.run(
+        [RAC, "session", "list", "--cluster=" + RAC_CLUSTER],
+        capture_output=True, timeout=60)
+    txt2 = out2.stdout.decode("cp866", errors="replace")
+    alive = sum(1 for block in txt2.split("\n\n")
+                if any(l.strip().startswith("infobase")
+                       and RAC_INFOBASE in l for l in block.splitlines()))
+    return alive
+
+
 def patch_settings_for_web(args):
     """T7 (FR-007): clientType=Web + webUrl в настройках гейта.
 
@@ -521,6 +561,19 @@ def main():
             if not rac_jobs_deny_set(True):
                 log("REGRESS %s: WARN: scheduled-jobs-deny не включён — "
                     "дамп может ждать сеансы фоновых заданий" % _ts)
+        # 21.10: запрет не убирает УЖЕ работающие фоновые задания —
+        # терминируем сеансы ИБ и требуем ноль (эксклюзив дампа)
+        for attempt in (1, 2, 3):
+            alive = rac_ib_sessions_terminate()
+            log("   sessions-terminate: живых сеансов ИБ=%d (попытка %d)"
+                % (alive, attempt))
+            if alive == 0:
+                break
+            time.sleep(15)
+        if alive != 0:
+            log("REGRESS %s: ABORT: на ИБ живые сеансы (%d) — "
+                "эксклюзив дампа не получить" % (_ts, alive))
+            return EXIT_INFRA
         ok, dump_dt = do_dump()
         if not ok:
             log("REGRESS %s: ABORT (dump FAILED), база не менялась" % _ts)
