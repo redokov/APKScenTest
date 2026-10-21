@@ -339,6 +339,9 @@ def rac_terminate_ib_sessions(only_user=None, app_ids=("1CV8",)):
                                 "--session=" + suuid], capture_output=True, timeout=30)
             if r.returncode == 0:
                 killed += 1
+            else:
+                log("   session terminate %s (%s) FAIL rc=%s"
+                    % (suuid, f.get("app-id", ""), r.returncode))
     return killed
 
 
@@ -711,16 +714,27 @@ def main():
             # Stage A (он же ADMIN) мог задержаться в rac после
             # step=done — терминируем lingering 1CV8-сеансы нашей базы
             # (префлайт гарантировал 0 внешних) и перепроверяем.
-            rac_terminate_ib_sessions()
-            rac_terminate_ib_sessions(app_ids=("BackgroundJob",))
             # s004: рубеж после Stage A игнорирует собственный COM-агент
             # гейта (app-id=COMConnection, живёт от Connect до verify),
             # RAS-службу и умирающие сеансы (пустой app-id); всё
             # остальное (1CV8, BackgroundJob, WebClient, неизвестные)
             # после терминирования = FAIL. Префлайт ДО Stage A остаётся
             # строгим (0 сеансов, кроме RAS) - COM-агент создаётся позже.
-            sessions, rac_err = rac_sessions_online(
-                exclude_app_ids=("RAS", "COMConnection", ""))
+            # 21.10 run5: BackgroundJob-сеанс менеджера (отложенное
+            # обновление ИБ/задание раннера) либо терминируется не сразу,
+            # либо умирает сам (~5 мин) - ретрай-луп с окном ~6 мин
+            # вместо одноразового прохода.
+            sessions, rac_err = None, None
+            for attempt in range(8):
+                n1 = rac_terminate_ib_sessions(
+                    app_ids=("1CV8", "BackgroundJob"))
+                sessions, rac_err = rac_sessions_online(
+                    exclude_app_ids=("RAS", "COMConnection", ""))
+                log("[real] post-A seance check %d: terminated=%d alive=%d"
+                    % (attempt + 1, n1, len(sessions)))
+                if rac_err or not sessions:
+                    break
+                time.sleep(45)
             if rac_err or sessions:
                 log("[real] FAIL: онлайн-сеансы после Stage A: %s"
                     % (rac_err or "; ".join(sessions)))
