@@ -259,9 +259,12 @@ def kill_tree(pid):
 
 # --- s004: режим реальных авторов -------------------------------------
 
-def rac_sessions_online():
+def rac_sessions_online(exclude_app_ids=("RAS",)):
     """Онлайн-сеансы на dev_erpapk_demo (FR-003, exit 2 у вызывающего).
 
+    exclude_app_ids - app-id, НЕ считающиеся блокирующими (префлайт:
+    только RAS-служба; пост-Stage-A рубеж: + COMConnection гейта и
+    умирающие с пустым app-id).
     Возвращает (список_строк_описаний, код_ошибки|None).
     """
     try:
@@ -280,7 +283,7 @@ def rac_sessions_online():
                 k, _, v = line.partition(":")
                 fields[k.strip()] = v.strip()
         if fields.get("infobase") == RAC_INFOBASE \
-                and fields.get("app-id") != "RAS":
+                and fields.get("app-id") not in exclude_app_ids:
             sessions.append("%s (%s)" % (fields.get("user-name"),
                                          fields.get("app-id")))
     return sessions, None
@@ -307,8 +310,8 @@ def guard_clear(run_id):
         os.remove(path)
 
 
-def rac_terminate_ib_sessions(only_user=None):
-    """Терминирует зомби-сеансы тонкого клиента (app-id 1CV8) нашей базы.
+def rac_terminate_ib_sessions(only_user=None, app_ids=("1CV8",)):
+    """Терминирует зомби-сеансы нашей базы с app-id из app_ids.
 
     COM-соединения (гейт) не трогаем. only_user - фильтр по имени.
     Возвращает количество терминированных.
@@ -325,7 +328,7 @@ def rac_terminate_ib_sessions(only_user=None):
             if ":" in line:
                 k, _, v = line.partition(":")
                 f[k.strip()] = v.strip()
-        if f.get("infobase") != RAC_INFOBASE or f.get("app-id") != "1CV8":
+        if f.get("infobase") != RAC_INFOBASE or f.get("app-id") not in app_ids:
             continue
         if only_user and f.get("user-name") != only_user:
             continue
@@ -709,7 +712,15 @@ def main():
             # step=done — терминируем lingering 1CV8-сеансы нашей базы
             # (префлайт гарантировал 0 внешних) и перепроверяем.
             rac_terminate_ib_sessions()
-            sessions, rac_err = rac_sessions_online()
+            rac_terminate_ib_sessions(app_ids=("BackgroundJob",))
+            # s004: рубеж после Stage A игнорирует собственный COM-агент
+            # гейта (app-id=COMConnection, живёт от Connect до verify),
+            # RAS-службу и умирающие сеансы (пустой app-id); всё
+            # остальное (1CV8, BackgroundJob, WebClient, неизвестные)
+            # после терминирования = FAIL. Префлайт ДО Stage A остаётся
+            # строгим (0 сеансов, кроме RAS) - COM-агент создаётся позже.
+            sessions, rac_err = rac_sessions_online(
+                exclude_app_ids=("RAS", "COMConnection", ""))
             if rac_err or sessions:
                 log("[real] FAIL: онлайн-сеансы после Stage A: %s"
                     % (rac_err or "; ".join(sessions)))
