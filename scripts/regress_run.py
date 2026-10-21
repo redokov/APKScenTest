@@ -240,7 +240,8 @@ def rac_ib_sessions_terminate():
     except Exception as e:
         log("   rac session list FAIL: %s" % str(e)[:150])
         return -1
-    txt = out.stdout.decode("cp866", errors="replace")
+    # 21.10: rac-вывод в CRLF - нормализуем до сплита по \n\n
+    txt = out.stdout.decode("cp866", errors="replace").replace("\r\n", "\n")
     sids = []
     for block in txt.split("\n\n"):
         fields = {}
@@ -248,8 +249,13 @@ def rac_ib_sessions_terminate():
             if ":" in line:
                 k, _, v = line.partition(":")
                 fields[k.strip()] = v.strip()
-        if fields.get("infobase") == RAC_INFOBASE and fields.get("session-id"):
-            sids.append((fields["session-id"], fields.get("app-id", "")))
+        if fields.get("infobase") != RAC_INFOBASE or not fields.get("session-id"):
+            continue
+        # RAS-служебный сеанс держит scheduled-jobs-deny: не терминируем
+        # и не считаем блокирующим (дампы с ним проходили 19-20.10)
+        if fields.get("app-id") == "RAS":
+            continue
+        sids.append((fields["session-id"], fields.get("app-id", "")))
     for sid, app in sids:
         r = subprocess.run(
             [RAC, "session", "terminate", "--cluster=" + RAC_CLUSTER,
@@ -261,10 +267,17 @@ def rac_ib_sessions_terminate():
     out2 = subprocess.run(
         [RAC, "session", "list", "--cluster=" + RAC_CLUSTER],
         capture_output=True, timeout=60)
-    txt2 = out2.stdout.decode("cp866", errors="replace")
-    alive = sum(1 for block in txt2.split("\n\n")
-                if any(l.strip().startswith("infobase")
-                       and RAC_INFOBASE in l for l in block.splitlines()))
+    txt2 = out2.stdout.decode("cp866", errors="replace").replace("\r\n", "\n")
+    alive = 0
+    for block in txt2.split("\n\n"):
+        fields = {}
+        for line in block.splitlines():
+            if ":" in line:
+                k, _, v = line.partition(":")
+                fields[k.strip()] = v.strip()
+        if (fields.get("infobase") == RAC_INFOBASE
+                and fields.get("app-id") != "RAS"):
+            alive += 1
     return alive
 
 

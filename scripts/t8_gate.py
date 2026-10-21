@@ -263,7 +263,9 @@ def rac_sessions_online():
                              capture_output=True, timeout=60)
     except Exception as e:
         return None, "rac недоступен: %s" % str(e)[:150]
-    txt = out.stdout.decode("cp866", errors="replace")
+    # 21.10: CRLF-нормализация (иначе весь список = один блок, см.
+    # rac_terminate_ib_sessions)
+    txt = out.stdout.decode("cp866", errors="replace").replace("\r\n", "\n")
     sessions = []
     for block in txt.split("\n\n"):
         fields = {}
@@ -271,7 +273,8 @@ def rac_sessions_online():
             if ":" in line:
                 k, _, v = line.partition(":")
                 fields[k.strip()] = v.strip()
-        if fields.get("infobase") == RAC_INFOBASE:
+        if fields.get("infobase") == RAC_INFOBASE \
+                and fields.get("app-id") != "RAS":
             sessions.append("%s (%s)" % (fields.get("user-name"),
                                          fields.get("app-id")))
     return sessions, None
@@ -306,7 +309,9 @@ def rac_terminate_ib_sessions(only_user=None):
     """
     out = subprocess.run([RAC, "session", "list", "--cluster=" + RAC_CLUSTER],
                          capture_output=True, timeout=60)
-    txt = out.stdout.decode("cp866", errors="replace")
+    # 21.10: rac-вывод в CRLF - без нормализации весь список = один блок
+    # (терминировался только последний сеанс)
+    txt = out.stdout.decode("cp866", errors="replace").replace("\r\n", "\n")
     killed = 0
     for block in txt.split("\n\n"):
         f = {}
