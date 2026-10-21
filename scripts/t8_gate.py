@@ -716,21 +716,20 @@ def main():
             # (префлайт гарантировал 0 внешних) и перепроверяем.
             # s004: рубеж после Stage A игнорирует собственный COM-агент
             # гейта (app-id=COMConnection, живёт от Connect до verify),
-            # RAS-службу и умирающие сеансы (пустой app-id); всё
-            # остальное (1CV8, BackgroundJob, WebClient, неизвестные)
-            # после терминирования = FAIL. Префлайт ДО Stage A остаётся
-            # строгим (0 сеансов, кроме RAS) - COM-агент создаётся позже.
-            # 21.10 run5: BackgroundJob-сеанс менеджера (отложенное
-            # обновление ИБ/задание раннера) либо терминируется не сразу,
-            # либо умирает сам (~5 мин) - ретрай-луп с окном ~6 мин
-            # вместо одноразового прохода.
+            # RAS-службу и умирающие сеансы (пустой app-id). 1CV8
+            # (зомби раннера) терминируем. BackgroundJob (отложенное
+            # задание БСП/ERP, стартованное сессией раннера) НЕ трогаем:
+            # 21.10 run6 - после УБИЙСТВА активного BackgroundJob
+            # клиент Stage B завис на старте сессии (ни одного шага
+            # runner_result.json); задание умирает само (~5-8 мин,
+            # факт run5) - ДОЖИДАЕМСЯ исчезновения, окно ~12 мин.
+            # Префлайт ДО Stage A остаётся строгим (0, кроме RAS).
             sessions, rac_err = None, None
-            for attempt in range(8):
-                n1 = rac_terminate_ib_sessions(
-                    app_ids=("1CV8", "BackgroundJob"))
+            for attempt in range(16):
+                n1 = rac_terminate_ib_sessions(app_ids=("1CV8",))
                 sessions, rac_err = rac_sessions_online(
                     exclude_app_ids=("RAS", "COMConnection", ""))
-                log("[real] post-A seance check %d: terminated=%d alive=%d"
+                log("[real] post-A seance check %d: killed1cv8=%d alive=%d"
                     % (attempt + 1, n1, len(sessions)))
                 if rac_err or not sessions:
                     break
