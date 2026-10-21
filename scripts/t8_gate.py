@@ -85,6 +85,11 @@ REAL_TEMPLATES = ["00-smoke", "01-pl-tractor",
 # инвариант: runner identity != любой пользователь батча.
 MANAGER_USER = "АпкСценТест_Менеджер"
 MANAGER_FULLNAME = "Менеджер раннеров s004 (удаляется)"
+# 21.10: ПолныеПрава НЕ включает право запуска внешних обработок —
+# без этой роли БСП блокирует /Execute раннера модалкой «запрещен
+# запуск внешних обработок» (diag-зонд tmp/s004/out_diagmgr.txt)
+MANAGER_ROLES = NEED_ROLES + ["ИнтерактивноеОткрытиеВнешнихОтчетовИОбработок",
+                               "ЗапускТонкогоКлиента"]
 
 # s004: режим реальных авторов — флаг CLI; guard-файлы парольной опасности
 REAL_MODE = "--real-authors" in sys.argv
@@ -192,14 +197,15 @@ def create_manager_user(agent, users):
     u.Имя = MANAGER_USER
     u.ПолноеИмя = MANAGER_FULLNAME
     md_roles = agent.Метаданные.Роли
-    for rn in NEED_ROLES:
+    for rn in MANAGER_ROLES:
         u.Роли.Добавить(getattr(md_roles, rn))
     try:
         u.ЗащитаОтОпасныхДействий.ПредупреждатьОбОпасныхДействиях = False
     except Exception as e:
         log("[setup] ЗОД off fail (%s): %s" % (MANAGER_USER, str(e)[:80]))
     u.Записать()
-    log("[setup] %s создан (роли: %s, без пароля)" % (MANAGER_USER, "+".join(NEED_ROLES)))
+    log("[setup] %s создан (роли: %s, без пароля)"
+        % (MANAGER_USER, "+".join(MANAGER_ROLES)))
 
 
 def delete_user(users, name):
