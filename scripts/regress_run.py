@@ -249,13 +249,14 @@ def rac_ib_sessions_terminate():
             if ":" in line:
                 k, _, v = line.partition(":")
                 fields[k.strip()] = v.strip()
-        if fields.get("infobase") != RAC_INFOBASE or not fields.get("session-id"):
+        if fields.get("infobase") != RAC_INFOBASE or not fields.get("session"):
             continue
         # RAS-служебный сеанс держит scheduled-jobs-deny: не терминируем
         # и не считаем блокирующим (дампы с ним проходили 19-20.10)
         if fields.get("app-id") == "RAS":
             continue
-        sids.append((fields["session-id"], fields.get("app-id", "")))
+        # 21.10: terminate требует UUID (поле session), не числовой session-id
+        sids.append((fields["session"], fields.get("app-id", "")))
     for sid, app in sids:
         r = subprocess.run(
             [RAC, "session", "terminate", "--cluster=" + RAC_CLUSTER,
