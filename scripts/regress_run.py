@@ -612,13 +612,19 @@ def main():
         gate_rc = run_gate(args.gate_timeout, real_authors=args.real_authors)
     finally:
         restore_settings(settings_bak)
-        if jobs_deny_prev == "off":
-            rac_jobs_deny_set(False)
         if dumped:
+            # 21.10 (4×3000с-таймаут): на выходе из гейта deny снимался
+            # ДО RestoreIB — ночные задания ERP спавнились и хватали
+            # базу раньше эксклюзива, restore висел >3000с. Ручной restore
+            # (сеансы почишены, задания уже отработали) проходил за ~900с.
+            # Фикс: чистим сеансы ИБ, держим deny до ЗАВЕРШЕНИЯ rollback.
+            rac_ib_sessions_terminate()
             rollback_ok = do_rollback(dump_dt)
             if not rollback_ok:
                 log("!!!! СБОЙ ОТКАТА: восстановите вручную: 1cv8 DESIGNER"
                     " /S %s /N<админ> /RestoreIB \"%s\"" % (CONN, dump_dt))
+        if jobs_deny_prev == "off":
+            rac_jobs_deny_set(False)
 
     run_dir, summary = load_summary()
     base = None if args.no_compare else read_baseline(baseline_path)
