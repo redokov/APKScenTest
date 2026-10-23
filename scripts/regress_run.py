@@ -37,7 +37,7 @@ WEB_URL_DEFAULT = "http://localhost:9093/dev_erpapk_demo"
 # получил эксклюзив за 900 с). Кластер/ИБ демо-базы фиксированы.
 RAC = r"C:\Program Files\1cv8\8.5.4.1683\bin\rac.exe"
 RAC_CLUSTER = "67cdef87-7bfc-4dae-b8e4-3ea9f8529156"
-RAC_INFOBASE = "c6a442bb-d7a9-4d8b-a274-37ea859b26c1"  # dev_erpapk_demo
+RAC_INFOBASE = "4d9168e8-f640-490f-bbe6-32b1df12991f"  # dev_erpapk_demo
 RUNS_DIR = os.path.join(ROOT, "tests")
 BASELINE = os.path.join(ROOT, "tests", "baseline", "baseline.json")
 # s004: отдельный baseline режима реальных авторов (статусы neg-*
@@ -609,6 +609,21 @@ def main():
         if args.real_authors:
             upd_kind += " + real-authors"
             settings_bak = patch_settings_for_real(args)
+        # 23.10 (run9 FAIL: gate preflight увидел зомби COMConnection-сеанс
+        # от прежних попыток -> exit=2): перед запуском гейта терминируем
+        # ВСЕ сеансы ИБ (rac_ib_sessions_terminate не пропускает ничего,
+        # кроме RAS) и требуем 0.
+        for attempt in (1, 2, 3):
+            alive = rac_ib_sessions_terminate()
+            log("   pre-gate sessions-terminate: живых сеансов ИБ=%d (попытка %d)"
+                % (alive, attempt))
+            if alive == 0:
+                break
+            time.sleep(15)
+        if alive != 0:
+            log("REGRESS %s: ABORT: перед гейтом живые сеансы (%d) — "
+                "preflight гейта упадёт" % (_ts, alive))
+            return EXIT_INFRA
         gate_rc = run_gate(args.gate_timeout, real_authors=args.real_authors)
     finally:
         restore_settings(settings_bak)
@@ -624,6 +639,16 @@ def main():
                 log("!!!! СБОЙ ОТКАТА: восстановите вручную: 1cv8 DESIGNER"
                     " /S %s /N<админ> /RestoreIB \"%s\"" % (CONN, dump_dt))
         if jobs_deny_prev == "off":
+            rac_jobs_deny_set(False)
+        else:
+            # 23.10: jobs_deny_prev мог быть 'on' (залипший остаток
+            # прошлого сбоя) — тогда deny НЕ снимался никогда: база
+            # навсегда оставалась заблокированной для эксклюзивов
+            # (каскад 23.10: RestoreIB завис -> kill -> ИБ разрушена).
+            # После завершения rollback deny=off — единственно безопасное
+            # состояние для dev-базы.
+            log("   scheduled-jobs-deny был '%s' (залипший) -> снимаю в любом случае"
+                % jobs_deny_prev)
             rac_jobs_deny_set(False)
 
     run_dir, summary = load_summary()

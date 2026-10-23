@@ -2,7 +2,7 @@
 """T6: terminate hanged (hibernated, client-less) sessions on dev_erpapk_demo.
 
 Safety:
-- only infobase c6a442bb-d7a9-4d8b-a274-37ea859b26c1 (dev_erpapk_demo)
+- only infobase 4d9168e8-f640-490f-bbe6-32b1df12991f (dev_erpapk_demo)
 - only app-id 1CV8 / 1CV8C with hibernate=yes
 - never touch app-id BackgroundJob / RAS / JobScheduler / Designer
 - prints every decision; refuses to terminate anything else.
@@ -15,7 +15,7 @@ import sys
 RAC = r"C:\Program Files\1cv8\8.5.4.1683\bin\rac.exe"
 HOST = "127.0.0.1"
 CLUSTER = "67cdef87-7bfc-4dae-b8e4-3ea9f8529156"
-TARGET_IB = "c6a442bb-d7a9-4d8b-a274-37ea859b26c1"  # dev_erpapk_demo
+TARGET_IB = "4d9168e8-f640-490f-bbe6-32b1df12991f"  # dev_erpapk_demo
 SAFE_APPIDS = {"1CV8", "1CV8C"}
 
 dry = "--dry" in sys.argv

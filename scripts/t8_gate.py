@@ -102,7 +102,7 @@ REAL_MODE = "--real-authors" in sys.argv
 GUARD_DIR = os.path.join(ROOT, "tests", "pwd-guard")
 RAC = r"C:\Program Files\1cv8\8.5.4.1683\bin\rac.exe"
 RAC_CLUSTER = "67cdef87-7bfc-4dae-b8e4-3ea9f8529156"
-RAC_INFOBASE = "c6a442bb-d7a9-4d8b-a274-37ea859b26c1"  # dev_erpapk_demo
+RAC_INFOBASE = "4d9168e8-f640-490f-bbe6-32b1df12991f"  # dev_erpapk_demo
 
 log_lines = []
 
