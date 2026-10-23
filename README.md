@@ -29,8 +29,8 @@
 | Vanessa Automation | `C:\MyProjects\APKTechPlan\tests\vanessa\vanessa-automation-single.epf` (расширение VA уже в базе, компонента установлена) |
 | Исходники ERP | `C:\MyProjects\ERPsrc` |
 | Исходники подсистемы АПК | `C:\MyProjects\APKModSrc` |
-| Вики по АПК (одно место) | `C:\MyProjects\APKTechPlan\wiki` |
-| Вики по Vanessa | `wiki/` этого репозитория |
+| Вики по АПК (одно место, обновляется в LLMWiki) | `c:\MyProjects\LLMWiki\APK` |
+| Вики по Vanessa (обновляется в LLMWiki, в репо её больше нет) | `c:\MyProjects\LLMWiki\Vanessa-Automation` |
 
 ## Структура
 
@@ -39,7 +39,7 @@
 docs/      — проектная документация
 scripts/   — python-хелперы (запуск, парсинг, сборка кириллицы)
 tests/     — .feature-сценарии и фикстуры
-wiki/      — база знаний по Vanessa Automation (llm-wiki)
+wiki/      — только README-заглушка; база знаний по Vanessa Automation (llm-wiki) перенесена в `c:\MyProjects\LLMWiki\Vanessa-Automation`
 ```
 
 Статус: bootstrap. План разработки — `.ai/sdd/PLAN.md`.

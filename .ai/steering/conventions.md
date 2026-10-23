@@ -13,14 +13,16 @@
 - Сценарии: имена файлов feature — латиницей с префиксом номера (`NN-slug.feature`),
   русский текст внутри. Шаблоны — `tests/templates/*.feature` (плейсхолдеры);
   сгенерированные run-каталоги и фикстуры прогона — в gitignore (не в git).
-- Вики Vanessa (`wiki/`) — в .gitignore: локальная база знаний, в git НЕ
-  коммитится (лицензионная чистота по докам VA). Вики АПК — только
-  `C:\MyProjects\APKTechPlan\wiki`, не дублировать.
+- Вики Vanessa — `c:\MyProjects\LLMWiki\Vanessa-Automation` (консолидирована в
+  LLMWiki, в этом репо её больше нет — только README-заглушка в `wiki/`;
+  в git НЕ коммитится, лицензионная чистота по докам VA). Вики АПК —
+  `c:\MyProjects\LLMWiki\APK`, не дублировать.
 - SDD: specs нумеруются 001..., статусы draft → approved; ничего не
   «approved» без ревью-гейта пользователем.
 - Файлы creds не коммитить (.gitignore).
-- Вики: Vanessa — `wiki/` этого репо (ingest/query/lint по llm-wiki скилу);
-  АПК — только `C:\MyProjects\APKTechPlan\wiki`, не дублировать.
+- Вики (ingest/query/lint по llm-wiki скилу): Vanessa —
+  `c:\MyProjects\LLMWiki\Vanessa-Automation`; АПК — `c:\MyProjects\LLMWiki\APK`,
+  не дублировать. В репо проекта вики больше нет.
 - Верификация: после сборки EPF — compile-gate (ПодключитьВнешнююОбработку +
   ПолучитьФорму без исполнения), после структурных правок — round-trip.
 - Тест-прогоны: препроцессинг всегда от `Администратор (ОрловАВ)`;

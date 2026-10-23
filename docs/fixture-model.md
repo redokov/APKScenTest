@@ -2,7 +2,7 @@
 
 > Источник имён — XML-исходники АПК (`C:\MyProjects\APKModSrc`, проверено
 > скриптом `scripts/extract_doc_attrs.py`). Описание бизнес-логики — вики АПК
-> (`C:\MyProjects\APKTechPlan\wiki`). Скоуп релиза 1 — растениеводство.
+> (`c:\MyProjects\LLMWiki\APK`, ранее `C:\MyProjects\APKTechPlan\wiki`). Скоуп релиза 1 — растениеводство.
 
 ## Общие элементы (есть почти во всех целевых документах)
 

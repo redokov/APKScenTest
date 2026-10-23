@@ -901,6 +901,14 @@ def main():
                 agent2 = win32com.client.Dispatch("V85.COMConnector").Connect(
                     conn_str(ADMIN, ""))
                 delete_neg_catalog_element(agent2)
+                # сироты авторегистрации БСП (зонды T8/T1 и др.);
+                # безопасность: только явные тестовые маркеры, реальные
+                # пользователи не затрагиваются (tests/test_user_orphans.py)
+                try:
+                    from user_orphans import cleanup_orphans
+                    cleanup_orphans(agent2, apply=True, log=log)
+                except ImportError:
+                    log("[cleanup] user_orphans: модуль не найден, чистка пропущена")
                 del agent2
             except Exception as e:
                 log("[cleanup] справочник Пользователи: %s" % str(e)[:120])

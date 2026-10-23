@@ -228,6 +228,45 @@ def rac_jobs_deny_set(on):
     return ok
 
 
+def rac_sessions_deny_set(on, msg=""):
+    """Блокировка ВХОДА новых сеансов через консоль (sessions-deny).
+
+    Ключевой приём (23.10, инцидент «воскресшего сеанса»): сначала
+    закрываем дверь (новые сеансы не входят), и только потом завершаем
+    сидящих внутри. После этого проверка «0 сеансов» устойчива и никакие
+    ретрай-циклы не нужны — воскресать некому.
+    """
+    try:
+        rc = subprocess.run(
+            [RAC, "infobase", "update", "--cluster=" + RAC_CLUSTER,
+             "--infobase=" + RAC_INFOBASE,
+             "--sessions-deny=" + ("on" if on else "off"),
+             "--denied-message=" + msg],
+            capture_output=True, timeout=60)
+    except Exception as e:
+        log("   rac sessions-deny update FAIL: %s" % str(e)[:150])
+        return False
+    ok = rc.returncode == 0
+    log("   sessions-deny=%s: %s" % ("on" if on else "off",
+                                     "OK" if ok else "FAIL"))
+    return ok
+
+
+def prepare_exclusive(deny_msg=""):
+    """Подготовка к эксклюзиву (dump/restore): БЛОК -> СНЯТИЕ -> ПРОВЕРКА.
+
+    1) sessions-deny=on — новые сеансы ИБ не входят (через консоль);
+    2) завершаем все существующие сеансы ИБ (кроме RAS);
+    3) требуем 0 сеансов (одна проверка — устойчива, дверь закрыта).
+    Возвращает True = можно запускать дизайнер, False = стоп.
+    """
+    if not rac_sessions_deny_set(True, deny_msg):
+        log("   WARN: sessions-deny не включён — возможна гонка сеансов")
+    alive = rac_ib_sessions_terminate()
+    log("   exclusive-prep: живых сеансов ИБ после завершения=%d" % alive)
+    return alive == 0
+
+
 def rac_ib_sessions_terminate():
     """Терминировать ВСЕ сеансы dev_erpapk_demo (инцидент 21.10:
     фоновые задания, стартовавшие до scheduled-jobs-deny, держат
@@ -576,19 +615,17 @@ def main():
                 log("REGRESS %s: WARN: scheduled-jobs-deny не включён — "
                     "дамп может ждать сеансы фоновых заданий" % _ts)
         # 21.10: запрет не убирает УЖЕ работающие фоновые задания —
-        # терминируем сеансы ИБ и требуем ноль (эксклюзив дампа)
-        for attempt in (1, 2, 3):
-            alive = rac_ib_sessions_terminate()
-            log("   sessions-terminate: живых сеансов ИБ=%d (попытка %d)"
-                % (alive, attempt))
-            if alive == 0:
-                break
-            time.sleep(15)
-        if alive != 0:
-            log("REGRESS %s: ABORT: на ИБ живые сеансы (%d) — "
-                "эксклюзив дампа не получить" % (_ts, alive))
+        # 23.10 (инцидент «воскресшего сеанса»): правильный порядок —
+        # СНАЧАЛА закрыть дверь (sessions-deny через консоль), ПОТОМ
+        # завершить сидящих и потребовать 0. Ретрай-циклы не нужны:
+        # при закрытой двери воскресать некому.
+        if not prepare_exclusive("Идёт обслуживание базы (дамп)"):
+            log("REGRESS %s: ABORT: на ИБ живые сеансы — "
+                "эксклюзив дампа не получить" % _ts)
             return EXIT_INFRA
         ok, dump_dt = do_dump()
+        # после дампа открываем дверь — гейту нужны сеансы
+        rac_sessions_deny_set(False)
         if not ok:
             log("REGRESS %s: ABORT (dump FAILED), база не менялась" % _ts)
             return EXIT_INFRA
@@ -610,16 +647,11 @@ def main():
             upd_kind += " + real-authors"
             settings_bak = patch_settings_for_real(args)
         # 23.10 (run9 FAIL: gate preflight увидел зомби COMConnection-сеанс
-        # от прежних попыток -> exit=2): перед запуском гейта терминируем
-        # ВСЕ сеансы ИБ (rac_ib_sessions_terminate не пропускает ничего,
-        # кроме RAS) и требуем 0.
-        for attempt in (1, 2, 3):
-            alive = rac_ib_sessions_terminate()
-            log("   pre-gate sessions-terminate: живых сеансов ИБ=%d (попытка %d)"
-                % (alive, attempt))
-            if alive == 0:
-                break
-            time.sleep(15)
+        # от прежних попыток -> exit=2): перед запуском гейта завершаем
+        # ВСЕ сеансы ИБ и требуем 0 (одна проверка — перед гейтом дверь
+        # остаётся открытой, гейту нужны свои сеансы).
+        alive = rac_ib_sessions_terminate()
+        log("   pre-gate sessions-terminate: живых сеансов ИБ=%d" % alive)
         if alive != 0:
             log("REGRESS %s: ABORT: перед гейтом живые сеансы (%d) — "
                 "preflight гейта упадёт" % (_ts, alive))
@@ -630,14 +662,22 @@ def main():
         if dumped:
             # 21.10 (4×3000с-таймаут): на выходе из гейта deny снимался
             # ДО RestoreIB — ночные задания ERP спавнились и хватали
-            # базу раньше эксклюзива, restore висел >3000с. Ручной restore
-            # (сеансы почишены, задания уже отработали) проходил за ~900с.
-            # Фикс: чистим сеансы ИБ, держим deny до ЗАВЕРШЕНИЯ rollback.
-            rac_ib_sessions_terminate()
-            rollback_ok = do_rollback(dump_dt)
+            # базу раньше эксклюзива, restore висел >3000с.
+            # 23.10: правильный порядок без ретрай-циклов — СНАЧАЛА
+            # закрыть дверь (sessions-deny через консоль), ПОТОМ завершить
+            # сеансы и потребовать 0, потом дизайнер (prepare_exclusive).
+            if not prepare_exclusive("Идёт обслуживание базы (восстановление)"):
+                log("!!!! ОТКАТ: живые сеансы ИБ, эксклюзив не получить — "
+                    "снимите их и повторите: 1cv8 DESIGNER /S %s /N<админ>"
+                    " /RestoreIB \"%s\"" % (CONN, dump_dt))
+                rollback_ok = False
+            else:
+                rollback_ok = do_rollback(dump_dt)
             if not rollback_ok:
                 log("!!!! СБОЙ ОТКАТА: восстановите вручную: 1cv8 DESIGNER"
                     " /S %s /N<админ> /RestoreIB \"%s\"" % (CONN, dump_dt))
+            # после отката открываем дверь обратно
+            rac_sessions_deny_set(False)
         if jobs_deny_prev == "off":
             rac_jobs_deny_set(False)
         else:
