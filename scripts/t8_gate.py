@@ -192,9 +192,15 @@ def create_user(agent, users, name):
 def create_manager_user(agent, users):
     """s004 blocker-A: нейтральный сервисный пользователь runner-сессий.
 
-    По образцу create_user, отличия: без пароля, без элемента
-    справочника «Пользователи» (БСП авто-регистрирует при первом
-    входе — паттерн Зонд1/Зонд2).
+    24.10 FIX (run10b/c root cause, bisect-серия 2/4/5): Менеджер
+    ОБЯЗАТЕЛЬНО регистрируется в справочнике «Пользователи» с
+    привязкой UUID (blocker-B паттерн, как у neg). НЕзарегистрированного
+    админа БСП при входе нормализует (Пользователи.СоздатьАдминистратор
+    перезаписывает роли ИБ на ПолныеПрава+АдминистраторСистемы+
+    DefaultRole) — срезаются ИнтерактивноеОткрытие... и
+    ЗапускТонкогоКлиента → /Execute раннера denied модалкой «Текущему
+    пользователю запрещен запуск внешних обработок». Зарегистрированного
+    БСП не трогает (neg прошёл 2 прогона с полным составом ролей).
     """
     old = find_user(users, MANAGER_USER)
     if old is not None:
@@ -210,7 +216,30 @@ def create_manager_user(agent, users):
     except Exception as e:
         log("[setup] ЗОД off fail (%s): %s" % (MANAGER_USER, str(e)[:80]))
     u.Записать()
-    log("[setup] %s создан (роли: %s, без пароля)"
+    # 24.10: регистрация в справочнике (иммунитет к БСП-нормализации ролей)
+    mgr_uuid = find_user(users, MANAGER_USER).УникальныйИдентификатор
+    spr = agent.Справочники.Пользователи
+    q = agent.NewObject("Query")
+    q.Text = ("ВЫБРАТЬ Пользователи.Ссылка ИЗ Справочник.Пользователи "
+              "КАК Пользователи ГДЕ Пользователи.Наименование = &Имя")
+    q.УстановитьПараметр("Имя", MANAGER_FULLNAME)
+    sel = q.Execute().Choose()
+    while sel.Next():
+        sel.Ссылка.ПолучитьОбъект().Удалить()
+    el = spr.СоздатьЭлемент()
+    el.Наименование = MANAGER_FULLNAME
+    el.ИдентификаторПользователяИБ = mgr_uuid
+    el.Записать()
+    # обычная запись теряет привязку UUID (БСП-обработчик очищает её) —
+    # перезапись в режиме загрузки (blocker-B факт tmp/s004)
+    ref = spr.НайтиПоНаименованию(MANAGER_FULLNAME)
+    obj = ref.ПолучитьОбъект()
+    obj.ОбменДанными.Загрузка = True
+    obj.Наименование = MANAGER_FULLNAME
+    obj.ИдентификаторПользователяИБ = mgr_uuid
+    obj.Записать()
+    log("[setup] %s создан (роли: %s, без пароля, зарегистрирован в "
+        "справочнике Пользователи — blocker-B, иммунитет к БСП-нормализации)"
         % (MANAGER_USER, "+".join(MANAGER_ROLES)))
 
 
@@ -785,6 +814,24 @@ def main():
         # (пер-батч 1200 c, стадия 3600 c).
         timeout_batches = 3600 if REAL_MODE else TIMEOUT_BATCHES
         per_batch = 1200 if REAL_MODE else 0
+        # 24.10 (run10b/c root cause): перед запуском раннера проверяем
+        # роли Менеджера — если БСП успел их срезать (незарегистрированный
+        # админ нормализуется на [ПолныеПрава+АдмСистемы+DefaultRole]),
+        # /Execute будет denied модалкой «запрещен запуск внешних
+        # обработок». Регистрация в справочнике (24.10 фикс) даёт
+        # иммунитет — это страховка.
+        try:
+            mgr_u = find_user(users, MANAGER_USER)
+            actual_roles = set(r.Имя for r in mgr_u.Роли)
+            missing = [rn for rn in MANAGER_ROLES if rn not in actual_roles]
+            if missing:
+                log("[stage-b] ABORT: у %s срезаны роли БСП-нормализацией: %s "
+                    "— /Execute будет denied" % (MANAGER_USER, "+".join(missing)))
+                return finish(False)
+            log("[stage-b] роли %s в порядке (%d)" % (MANAGER_USER, len(actual_roles)))
+        except Exception as e:
+            log("[stage-b] проверка ролей %s FAIL: %s"
+                % (MANAGER_USER, str(e)[:100]))
         log("[stage-b] батчи (T6-механизм: порты, сироты, finally)"
             + (" [real] пер-батч таймаут %d c" % per_batch if REAL_MODE else ""))
         with io.open(T6_TASK, "w", encoding="utf-8") as f:
