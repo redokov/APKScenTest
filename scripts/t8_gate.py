@@ -290,6 +290,100 @@ def cleanup_today_counters(agent):
     return len(recorders)
 
 
+def real_data_guards(agent, run_dir):
+    """T12 (RCA SA1/SA2): гварды данных перед real-прогоном.
+
+    1) РС АпкНастройкиВесовой: записи с ПодключенВесовойТерминал=ИСТИНА
+       глушат все 4 весовых поля формы взвешивания при создании
+       (ФормаДокумента Module.bsl:27, ветка терминала — вес идёт с
+       демо-весов, ручной ввод запрещён) — 05-weighing упадёт;
+    2) АпкСкладБака у ТС из фикстур 02-pl-auto: пустой склад бака =
+       «Значение поля \"Склад\" не может быть пустым» (РН Товары на
+       складах) при закрытии работы сценарного ПЛ (ПроведениеДокументов
+       Module.bsl:2099, Склад = СтрокаГСМ.АпкСкладБака).
+    Возвращает список ошибок (пустой = ок)."""
+    errs = []
+    try:
+        q = agent.NewObject("Query")
+        q.Text = ("ВЫБРАТЬ КОЛИЧЕСТВО(*) КАК К "
+                  "ИЗ РегистрСведений.АпкНастройкиВесовой КАК Р "
+                  "ГДЕ Р.ПодключенВесовойТерминал = ИСТИНА")
+        sel = q.Execute().Choose()
+        n = int(sel.К) if sel.Next() else 0
+        if n:
+            errs.append("АпкНастройкиВесовой: %d записей с включённым "
+                        "весовым терминалом (весовые поля формы "
+                        "взвешивания недоступны, 05-weighing упадёт)" % n)
+    except Exception as e:
+        errs.append("весовая: %s" % str(e)[:120])
+    fx = read_json(os.path.join(run_dir, "fixtures.json"))
+    ts_uuids = set()
+    for d in (fx or {}).get("documents") or []:
+        if d.get("type") != "АпкПутевойЛистАвтотранспорта":
+            continue
+        data = d.get("data") or {}
+        u = ((data.get("header") or {}).get("Автомобиль") or {}).get("uuid")
+        if u:
+            ts_uuids.add(u)
+        for part in ((data.get("tabular") or {}).get("ГСМ") or []):
+            u = (part.get("ТранспортноеСредство") or {}).get("uuid")
+            if u:
+                ts_uuids.add(u)
+    for u in sorted(ts_uuids):
+        try:
+            uid = agent.NewObject("УникальныйИдентификатор", u)
+            ref = agent.Справочники.ТранспортныеСредства.ПолучитьСсылку(uid)
+            if ref.Пустая():
+                errs.append("ТС %s не найден" % u)
+                continue
+            sb = ref.АпкСкладБака
+            if sb is None or sb.Пустая():
+                errs.append("у ТС %s пустой АпкСкладБака (02-pl-auto: "
+                            "«Склад не может быть пустым» при проведении)" % u)
+        except Exception as e:
+            errs.append("ТС %s: %s" % (u, str(e)[:120]))
+    return errs
+
+
+def cleanup_scenario_artifacts(agent):
+    """T12: teardown real-гейта — удаляет сценарные артефакты за сегодня.
+
+    ПЛ автотранспорта (кроме реального представителя НВЦБ-000002) —
+    иначе повторный прогон того же дня конфликтует по РС
+    АпкСчетчикТранспортныхСредств (ключ Дата+ТС, «запись существует»);
+    взвешивания — освобождают талоны (РС АпкМассаРаспределеннаяПоТалонам,
+    «Талон уже использован»). Реальные документы (дата < сегодня)
+    не затрагиваются. Полные прогоны не зависят (dump + rollback)."""
+    today = datetime.date.today()
+    d1 = datetime.datetime(today.year, today.month, today.day)
+    deleted = {"pl": 0, "weighing": 0}
+    for doctype, keep in (("АпкПутевойЛистАвтотранспорта", "НВЦБ-000002"),
+                          ("АпкРегистрацияВзвешиванийНаТоку", None)):
+        try:
+            q = agent.NewObject("Query")
+            q.Text = ("ВЫБРАТЬ С.Ссылка КАК Ref, С.Номер КАК N "
+                      "ИЗ Документ.%s КАК С ГДЕ С.Дата >= &D1" % doctype)
+            q.УстановитьПараметр("D1", d1)
+            sel = q.Execute().Choose()
+            refs = []
+            while sel.Next():
+                refs.append((sel.Ref, str(sel.N)))
+            for ref, num in refs:
+                if keep and num == keep:
+                    continue
+                try:
+                    ref.GetObject().Delete()
+                    deleted["pl" if keep else "weighing"] += 1
+                except Exception as e:
+                    log("[cleanup] сценарный артефакт %s: %s"
+                        % (num, str(e)[:100]))
+        except Exception as e:
+            log("[cleanup] %s: %s" % (doctype, str(e)[:120]))
+    log("[cleanup] сценарные артефакты за сегодня удалены: "
+        "ПЛ=%d, взвешиваний=%d" % (deleted["pl"], deleted["weighing"]))
+    return deleted
+
+
 def kill_tree(pid):
     subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True)
 
@@ -494,22 +588,68 @@ def prepare_real_manifest(run_dir, checks):
     # валидируем ОДИН сценарий — первый в манифесте (НВ00-000003,
     # валидированный в s2-T4; у НВ00-000016 пустой Автомобиль).
     seen_weighing = False
+    seen_plauto = False
     keep_files = []
     for e in files:
         if e.get("template") == "05-weighing":
             if seen_weighing:
                 continue
             seen_weighing = True
+        # T12: 02-pl-auto — РС АпкСчетчикТранспортныхСредств, ключ
+        # (Дата, ТС): второй документ на тот же ТС в тот же день падает
+        # («запись существует», фейл НВ00-000009). Оставляем первый
+        # сценарий манифеста (НВЦБ-000002, валидированный) — 009/004
+        # pending (см. факты e2e).
+        if e.get("template") == "02-pl-auto":
+            if seen_plauto:
+                continue
+            seen_plauto = True
         keep_files.append(e)
     dropped_w = len(files) - len(keep_files)
     files = keep_files
-    if dropped_w:
+    if seen_weighing and dropped_w:
         log("[real] 05-weighing: оставлен 1 сценарий (талоны-литералы "
             "12-000099/100 конфликтуют при нескольких сценариях); "
             "отложено: %d" % dropped_w)
+    if seen_plauto:
+        log("[real] 02-pl-auto: оставлен 1 сценарий на автора "
+            "(счётчик ТС: ключ РС (Дата, ТС), два документа на один "
+            "ТС в день конфликтуют); остальное pending")
     if dropped:
         log("[real] невалидированные шаблоны отложены (runbook §6): %s"
             % ", ".join(dropped))
+    # T12: 02-pl-auto — прогоняется содержимое .feature, а
+    # expected_positive считается из scenarios манифеста: обрезаем
+    # файл до первого сценария (НВЦБ-000002) и синхронизируем запись.
+    for e in files:
+        if e.get("template") != "02-pl-auto":
+            continue
+        fpath = e.get("file", "")
+        if not os.path.isfile(fpath):
+            return None, "02-pl-auto: файл не найден (%s)" % fpath
+        with io.open(fpath, encoding="utf-8-sig") as f:
+            lines = f.readlines()
+        out, n_scen = [], 0
+        for ln in lines:
+            s = ln.lstrip()
+            if s.startswith("Сценарий:") or s.startswith("Scenario:"):
+                n_scen += 1
+                if n_scen > 1:
+                    break
+            out.append(ln)
+        while out and not out[-1].strip():
+            out.pop()
+        if n_scen > 1:
+            with io.open(fpath, "w", encoding="utf-8") as f:
+                f.writelines(out)
+            docs = e.get("documents") or []
+            e["scenarios"] = 1
+            if len(docs) > 1:
+                e["documents"] = docs[:1]
+            log("[real] 02-pl-auto: feature-файл обрезан до 1 сценария "
+                "(%s), documents=%s"
+                % (os.path.basename(fpath),
+                   ", ".join(e.get("documents") or [])))
     fdir = os.path.join(run_dir, "features")
 
     # D-003: smoke как первый батч под первым автором
@@ -813,6 +953,13 @@ def main():
                                   "negUser": NEG_USER,
                                   "startedAt": time.strftime("%Y-%m-%dT%H:%M:%S")})
             log("[real] guard-файл записан: %s.active.json" % run_id)
+            guard_errs = real_data_guards(agent, run_dir)
+            if guard_errs:
+                for ge_ in guard_errs:
+                    log("[real] FAIL гвард данных: %s" % ge_)
+                return finish(False)
+            log("[real] гварды данных OK (весовой терминал выкл, "
+                "склад бака заполнен)")
             cleanup_today_counters(agent)
         else:
             hashes[ZOND1] = create_user(agent, users, ZOND1)
@@ -969,6 +1116,7 @@ def main():
                 agent2 = win32com.client.Dispatch("V85.COMConnector").Connect(
                     conn_str(ADMIN, ""))
                 delete_neg_catalog_element(agent2)
+                cleanup_scenario_artifacts(agent2)
                 # сироты авторегистрации БСП (зонды T8/T1 и др.);
                 # безопасность: только явные тестовые маркеры, реальные
                 # пользователи не затрагиваются (tests/test_user_orphans.py)
@@ -1198,6 +1346,51 @@ def verify_real(agent, users, checks, data_b, hashes, snapshot):
     check(totals.get("passed", 0) >= expected_positive,
           "totals.passed >= %d (позитивные сценарии) (= %s)"
           % (expected_positive, json.dumps(totals, ensure_ascii=False)))
+
+    # T12 (RCA SA1): ложный PASS 02 — кнопка ФормаОткрытьЗакрытьРаботы
+    # глотает исключение проведения (Попытка…Исключение в модуле формы
+    # меняет статус обратно). Проверяем фактический результат сценарного
+    # ПЛ за сегодня: Проведен=Истина, СтатусДокумента=3, движения
+    # РН ТоварыНаСкладах есть.
+    pl_bad = []
+    pl_ok = 0
+    try:
+        q = agent.NewObject("Query")
+        q.Text = ("ВЫБРАТЬ С.Ссылка КАК Ref, С.Номер КАК N, С.Проведен КАК P, "
+                  "С.СтатусДокумента КАК St "
+                  "ИЗ Документ.АпкПутевойЛистАвтотранспорта КАК С "
+                  "ГДЕ С.Дата >= &D1 И С.Номер <> &Keep")
+        today = datetime.date.today()
+        q.УстановитьПараметр("D1", datetime.datetime(
+            today.year, today.month, today.day))
+        q.УстановитьПараметр("Keep", "НВЦБ-000002")
+        sel = q.Execute().Choose()
+        while sel.Next():
+            num = str(sel.N)
+            posted = bool(sel.P)
+            try:
+                st = int(sel.St)
+            except Exception:
+                st = -1
+            qm = agent.NewObject("Query")
+            qm.Text = ("ВЫБРАТЬ КОЛИЧЕСТВО(*) КАК К "
+                       "ИЗ РегистрНакопления.ТоварыНаСкладах КАК Т "
+                       "ГДЕ Т.Регистратор = &Р")
+            qm.УстановитьПараметр("Р", sel.Ref)
+            sm = qm.Execute().Choose()
+            mv = 0
+            if sm.Next():
+                mv = int(sm.К)
+            if posted and st == 3 and mv > 0:
+                pl_ok += 1
+            else:
+                pl_bad.append("%s (проведён=%s, статус=%s, движений=%d)"
+                              % (num, posted, st, mv))
+    except Exception as e:
+        pl_bad.append("зонд: %s" % str(e)[:120])
+    check(pl_ok >= 1 and not pl_bad,
+          "сценарный ПЛ за сегодня: проведён+закрыт+движения "
+          "(ok=%d, bad: %s)" % (pl_ok, "; ".join(pl_bad) or "нет"))
 
     md_path = os.path.join(run_dir, "summary.md")
     md_text = ""
