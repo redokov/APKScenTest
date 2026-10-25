@@ -78,6 +78,8 @@ SMOKE_TEMPLATE_FILE = os.path.join(ROOT, "tests", "templates", "00-smoke.feature
 # s004: real-режим переносит РЕПЕТИЦИОННЫЙ (валидированный) набор шаблонов
 # на реальных авторов; невалидированные (02/03/04/05) - pending (runbook §6)
 REAL_TEMPLATES = ["00-smoke", "01-pl-tractor",
+                  "02-pl-auto", "03-piece-work-order",
+                  "04-fuel-sheet", "05-weighing",
                   "arm-fuel-receipt", "arm-payroll", "arm-fuel-expense"]
 
 # s004 blocker-A: нейтральный сервисный пользователь runner-сессий.
@@ -486,6 +488,25 @@ def prepare_real_manifest(run_dir, checks):
     files = [e for e in files if e.get("template") in REAL_TEMPLATES]
     if not files:
         return None, "после фильтра REAL_TEMPLATES манифест пуст"
+    # T12: 05-weighing — талоны 12-000099/12-000100 — статические литералы
+    # шаблона: несколько сценариев конфликтуют («Талон уже использован»,
+    # РС АпкМассаРаспределеннаяПоТалонам). До динамических свободных талонов
+    # валидируем ОДИН сценарий — первый в манифесте (НВ00-000003,
+    # валидированный в s2-T4; у НВ00-000016 пустой Автомобиль).
+    seen_weighing = False
+    keep_files = []
+    for e in files:
+        if e.get("template") == "05-weighing":
+            if seen_weighing:
+                continue
+            seen_weighing = True
+        keep_files.append(e)
+    dropped_w = len(files) - len(keep_files)
+    files = keep_files
+    if dropped_w:
+        log("[real] 05-weighing: оставлен 1 сценарий (талоны-литералы "
+            "12-000099/100 конфликтуют при нескольких сценариях); "
+            "отложено: %d" % dropped_w)
     if dropped:
         log("[real] невалидированные шаблоны отложены (runbook §6): %s"
             % ", ".join(dropped))
