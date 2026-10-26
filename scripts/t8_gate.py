@@ -575,31 +575,77 @@ def delete_neg_catalog_element(agent):
 # АпкРастениеводствоКлиент.АналитикаРасходовНачалоВыбора
 # (Module.bsl:349-447) → стандартная форма выбора по типу реквизита —
 # окно «Структура предприятия», значение «Автопарк» (фикстура).
-PLAUTO_PATCHES = {
-    "НВ00-000009": (("replace", u"КАМАЗ-65115, Гос.№Т836ХН36",
-                     u"КАМАЗ-65115, Гос.№Т835ХН36"),),
-    # НВ00-000004: ввод текста в поле аналитики (стандартный выбор по
-    # строке; «Автопарк» уникален → подстановка без окна). UIA-клик по
-    # '<PID> Автопарк Наименование' в динамической форме выбора
-    # «Структура предприятия» не работает (итер.7: окно открылось,
-    # клик failed) — окно вообще не открываем.
-    "НВ00-000004": (("block",
-                     u'нажимаю кнопку выбора у реквизита с именем '
-                     u'"ВыполненныеРаботыАналитикаРасходов"',
-                     u'поле с именем "ВыполненныеРаботыАналитикаРасходов" '
-                     u'имеет значение',
-                     (u'\tИ в таблице "ВыполненныеРаботы" в поле с именем '
-                      u'"ВыполненныеРаботыАналитикаРасходов" я ввожу текст "Автопарк"',
-                      u'\tИ в таблице "ВыполненныеРаботы" я завершаю редактирование строки',
-                      u'\tИ Пауза 1',
-                      u'\tИ в таблице "ВыполненныеРаботы" поле с именем '
-                      u'"ВыполненныеРаботыАналитикаРасходов" имеет значение "Автопарк"')),),
+# T13/T14: точечные патчи сгенерированных сценарных блоков (до батчей;
+# значения уже подставлены из фикстур). Структура: шаблон →
+# {номер документа в заголовке сценария → операции}.
+# Операция ("replace", old, new): замена подстроки в блоке.
+# Операция ("block", start_m, end_m, new_lines): вырезка от первой
+# строки с start_m до первой строки с end_m ПОСЛЕ неё (включительно),
+# вставка new_lines (() = чистая вырезка).
+# Операция ("drop",): сценарий исключается из прогона целиком
+# (блок + заголовок), номер — в списке dropped (для documents).
+#
+# 02-pl-auto: НВ00-000009 — РС АпкСчетчикТранспортныхСредств, ключ
+# (Период, ТС): конфликт с НВЦБ-000002 (КАМАЗ Т836ХН36) в тот же день;
+# ТС меняется на КАМАЗ Т835ХН36 (та же модель = те же нормы,
+# АпкСкладБака заполнен, остаток 162 л, счётчик 76988 < 89999).
+# НВ00-000004 (Toyota, «Доставка документов»): ТипЗатрат
+# «Общехозяйственные» не перехватывается
+# АпкРастениеводствоКлиент.АналитикаРасходовНачалоВыбора →
+# стандартный выбор по строке: ввод текста «Автопарк» (уникален,
+# окно не открываем; UIA-клик в динамической форме выбора не
+# работает — T13 iter7).
+#
+# 05-weighing (T14, 26.10): складские виды ВзвешиванияНаТоку (НВ00-000018
+# Возврат, -016 Реализация, -014 Перемещение, -017 Поступление —
+# автор СоколовМИ, файл ранее отфильтрован целиком): талоны НЕ
+# вводим (страница Талоны скрыта для не-«с поля» вида; литералы
+# 12-000099/100 конфликтуют с НВ00-000003) — вырезаем обе группы;
+# Откуда — не «Объекты затрат» (склад/контрагент): ввод текстом
+# значения фикстуры (уникально; при авто-установке сервером при
+# выборе вида — перезаписывается тем же значением); у -016
+# (Реализация) Автомобиль в фикстуре пуст — вырезаем и его.
+SCENARIO_PATCHES = {
+    "02-pl-auto": {
+        "НВ00-000009": (("replace", u"КАМАЗ-65115, Гос.№Т836ХН36",
+                         u"КАМАЗ-65115, Гос.№Т835ХН36"),),
+        "НВ00-000004": (("block",
+                         u'нажимаю кнопку выбора у реквизита с именем '
+                         u'"ВыполненныеРаботыАналитикаРасходов"',
+                         u'поле с именем "ВыполненныеРаботыАналитикаРасходов" '
+                         u'имеет значение',
+                         (u'\tИ в таблице "ВыполненныеРаботы" в поле с именем '
+                          u'"ВыполненныеРаботыАналитикаРасходов" я ввожу текст "Автопарк"',
+                          u'\tИ в таблице "ВыполненныеРаботы" я завершаю редактирование строки',
+                          u'\tИ Пауза 1',
+                          u'\tИ в таблице "ВыполненныеРаботы" поле с именем '
+                          u'"ВыполненныеРаботыАналитикаРасходов" имеет значение "Автопарк"')),),
+    },
+    "05-weighing": {
+        "НВ00-000018": (("drop",),),  # T15: структурный — после выбора
+                        # «Возврат» вся шапка ТолькоПросмотр=Истина до
+                        # выбора ОснованиеВозврата (Module.bsl:1443-1448)
+                        # — требует перепроектированного сценария → pending
+        # T15 iter9/10 (факты 44): сценарии ниже дважды упали в прогоне —
+        # стоп-правило; отложены (pending) до отдельного решения:
+        "НВ00-000016": (("drop",),),  # iter10: Куда — составной тип,
+                        # ВвестиТекст «неподходящий тип элемента»; ввод
+                        # текстом Откуда при этом работает
+        "НВ00-000014": (("drop",),),  # iter9/10: выбор вида
+                        # «Перемещение» падает ОБЕИМИ механиками (по
+                        # строке и точное значение) — вероятная
+                        # асинх-перегрузка СпискаВыбора; + Куда «ЗАВ»
+                        # вне первых 20 СпискаСкладов
+        "НВ00-000017": (("drop",),),  # iter9/10: то же для
+                        # «Поступление»
+    },
 }
 
 
-def _patch_plauto_feature(fpath):
-    """Патчит сценарные блоки 02-pl-auto по PLAUTO_PATCHES.
-    Возвращает (n_scen, n_patched, лог-строки)."""
+def _patch_scenarios(fpath, patches):
+    """Патчит сценарные блоки feature-файла по patches
+    (см. SCENARIO_PATCHES). Возвращает (n_scen, n_patched, лог-строки,
+    dropped — номера исключённых ("drop") сценариев)."""
     with io.open(fpath, encoding="utf-8-sig") as f:
         lines = f.readlines()
     blocks, cur_title, cur = [], None, []
@@ -615,17 +661,24 @@ def _patch_plauto_feature(fpath):
             blocks.append((None, [ln]))
     if cur_title is not None:
         blocks.append((cur_title, cur))
-    n_scen, n_pat, pat_log = 0, 0, []
+    n_scen, n_pat, pat_log, dropped = 0, 0, [], []
     out = []
     for title, blines in blocks:
         if title is None:
             out.extend(blines)
             continue
+        matched = [(key, ops) for key, ops in patches.items()
+                   if key in title]
+        if matched and any(op[0] == "drop" for _, ops in matched
+                           for op in ops):
+            key = matched[0][0]
+            dropped.append(key)
+            pat_log.append("%s: dropped (структурно несовместим)" % key)
+            n_pat += 1
+            continue
         n_scen += 1
         replaced = []
-        for key, subs in PLAUTO_PATCHES.items():
-            if key not in title:
-                continue
+        for key, subs in matched:
             for op in subs:
                 if op[0] == "replace":
                     _, old, new = op
@@ -637,14 +690,15 @@ def _patch_plauto_feature(fpath):
                     _, start_m, end_m, new_lines = op
                     i0 = next((i for i, l in enumerate(blines)
                                if start_m in l), None)
-                    i1 = next((i for i, l in enumerate(blines)
-                               if end_m in l), None)
-                    if i0 is not None and i1 is not None and i1 >= i0:
+                    i1 = (next((i for i in range(i0 + 1, len(blines))
+                                if end_m in blines[i]), None)
+                          if i0 is not None else None)
+                    if i0 is not None and i1 is not None:
                         blines = (blines[:i0]
                                   + [l + "\n" for l in new_lines]
                                   + blines[i1 + 1:])
-                        replaced.append("%s: block -> ввод текста "
-                                        "(Автопарк)" % key)
+                        replaced.append("%s: block %s..%s"
+                                        % (key, start_m[:24], end_m[:16]))
         if replaced:
             n_pat += 1
             pat_log.extend(replaced)
@@ -653,7 +707,7 @@ def _patch_plauto_feature(fpath):
     if n_pat:
         with io.open(fpath, "w", encoding="utf-8") as f:
             f.writelines(out)
-    return n_scen, n_pat, pat_log
+    return n_scen, n_pat, pat_log, dropped
 
 
 def prepare_real_manifest(run_dir, checks):
@@ -675,24 +729,17 @@ def prepare_real_manifest(run_dir, checks):
     files = [e for e in files if e.get("template") in REAL_TEMPLATES]
     if not files:
         return None, "после фильтра REAL_TEMPLATES манифест пуст"
-    # T12: 05-weighing — талоны 12-000099/12-000100 — статические литералы
-    # шаблона: несколько сценариев конфликтуют («Талон уже использован»,
-    # РС АпкМассаРаспределеннаяПоТалонам). До динамических свободных талонов
-    # валидируем ОДИН сценарий — первый в манифесте (НВ00-000003,
-    # валидированный в s2-T4; у НВ00-000016 пустой Автомобиль).
-    seen_weighing = False
+    # T12/T13/T14: фильтры «один 02/05 на автора» СНЯТЫ.
+    # 02: конфликт счётчика ТС решён свапом ТС сценария 009,
+    # аналитика 004 — вводом текста (SCENARIO_PATCHES).
+    # 05: талоны 12-000099/100 нужны ТОЛЬКО сценарию «Урожай с поля»
+    # (НВ00-000003); складские виды (18/16/14/17, СоколовМИ) талоны не
+    # вводят вообще (страница скрыта) — конфликта нет; их сценарии
+    # патчатся (SCENARIO_PATCHES['05-weighing']). Talon-guard в
+    # preflight проверяет свободу 12-000099/100.
     seen_plauto = False
     keep_files = []
     for e in files:
-        if e.get("template") == "05-weighing":
-            if seen_weighing:
-                continue
-            seen_weighing = True
-        # T12: 02-pl-auto — РС АпкСчетчикТранспортныхСредств, ключ
-        # (Дата, ТС): второй документ на тот же ТС в тот же день падает
-        # («запись существует», фейл НВ00-000009). Оставляем первый
-        # сценарий манифеста (НВЦБ-000002, валидированный) — 009/004
-        # pending (см. факты e2e).
         if e.get("template") == "02-pl-auto":
             if seen_plauto:
                 continue
@@ -700,32 +747,42 @@ def prepare_real_manifest(run_dir, checks):
         keep_files.append(e)
     dropped_w = len(files) - len(keep_files)
     files = keep_files
-    if seen_weighing and dropped_w:
-        log("[real] 05-weighing: оставлен 1 сценарий (талоны-литералы "
-            "12-000099/100 конфликтуют при нескольких сценариях); "
-            "отложено: %d" % dropped_w)
+    if dropped_w:
+        log("[real] отфильтровано записей манифеста: %d" % dropped_w)
     if seen_plauto:
         log("[real] 02-pl-auto: все сценарии манифеста (счётчик ТС: "
-            "конфликт 009 решён свапом ТС, аналитика 004 — патчем окна; "
-            "см. _patch_plauto_feature)")
+            "конфликт 009 решён свапом ТС, аналитика 004 — патчем; "
+            "см. SCENARIO_PATCHES)")
     if dropped:
         log("[real] невалидированные шаблоны отложены (runbook §6): %s"
             % ", ".join(dropped))
-    # T13: 02-pl-auto — сценарии 002/009/004 гоняются все (обрезка снята);
-    # точечные патчи блоков сценариев — _patch_plauto_feature().
+    # T13/T14: сценарные патчи по шаблонам (SCENARIO_PATCHES); обрезка
+    # и фильтры 02/05 сняты — все сценарии манифеста гоняются.
     for e in files:
-        if e.get("template") != "02-pl-auto":
+        tpl = e.get("template", "")
+        if tpl not in SCENARIO_PATCHES or not SCENARIO_PATCHES[tpl]:
             continue
         fpath = e.get("file", "")
         if not os.path.isfile(fpath):
-            return None, "02-pl-auto: файл не найден (%s)" % fpath
-        n_scen, n_pat, pat_log = _patch_plauto_feature(fpath)
+            return None, "%s: файл не найден (%s)" % (tpl, fpath)
+        n_scen, n_pat, pat_log, dropped_keys = _patch_scenarios(
+            fpath, SCENARIO_PATCHES[tpl])
+        if dropped_keys:
+            docs = e.get("documents") or []
+            e["documents"] = [d for d in docs
+                              if not any(k in d for k in dropped_keys)]
+            log("[real] %s: исключены сценарии (drop): %s"
+                % (tpl, ", ".join(dropped_keys)))
         if n_scen <= 0:
-            return None, "02-pl-auto: сценариев не найдено (%s)" % fpath
+            if dropped_keys:
+                # все сценарии файла исключены — файл уходит из манифеста
+                files = [x for x in files if x is not e]
+                continue
+            return None, "%s: сценариев не найдено (%s)" % (tpl, fpath)
         e["scenarios"] = n_scen
         if pat_log:
-            log("[real] 02-pl-auto: сценариев=%d, патчей=%d (%s)"
-                % (n_scen, n_pat, "; ".join(pat_log)))
+            log("[real] %s: сценариев=%d, патчей=%d (%s)"
+                % (tpl, n_scen, n_pat, "; ".join(pat_log)))
     fdir = os.path.join(run_dir, "features")
 
     # D-003: smoke как первый батч под первым автором
@@ -936,6 +993,33 @@ def main():
             sys.exit(2)
         log("[preflight] OK: alwaysSubstitutePwd=true в настройках")
     agent = win32com.client.Dispatch("V85.COMConnector").Connect(conn_str(ADMIN, ""))
+    # T14: talon-guard — талоны-литералы шаблона 05 должны быть свободны
+    # (РН АпкМассаРаспределеннаяПоТалонам подчинён регистратору; занятость
+    # = мусор от незавершённого прогона либо реальный документ)
+    if REAL_MODE:
+        try:
+            tq = agent.NewObject("Query")
+            tq.Text = (u"ВЫБРАТЬ ПРЕДСТАВЛЕНИЕ(М.Регистратор) КАК Док "
+                       u"ИЗ РегистрНакопления.АпкМассаРаспределеннаяПоТалонам КАК М "
+                       u"ГДЕ М.НомерТалона = &Н1 ИЛИ М.НомерТалона = &Н2")
+            tq.УстановитьПараметр("Н1", "12-000099")
+            tq.УстановитьПараметр("Н2", "12-000100")
+            ts = tq.Execute().Choose()
+            busy = []
+            while ts.Next():
+                busy.append(str(ts.Док)[:60])
+            if busy:
+                log("[preflight] FAIL: талоны 12-000099/12-000100 заняты "
+                    "документами: %s — незавершённый прогон/реальные "
+                    "данные, см. runbook §6" % "; ".join(busy))
+                io.open(GATE_LOG, "w", encoding="utf-8").write("\n".join(log_lines))
+                sys.exit(2)
+            log("[preflight] OK: талоны 12-000099/12-000100 свободны")
+        except SystemExit:
+            raise
+        except Exception as e:
+            log("[preflight] WARN: talon-guard зонд не выполнен: %s"
+                % str(e)[:120])
     users = agent.ПользователиИнформационнойБазы
     hashes = {}
     snapshot = {}
