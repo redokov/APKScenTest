@@ -563,6 +563,99 @@ def delete_neg_catalog_element(agent):
         log("[cleanup] справочник Пользователи: удалено элементов neg: %d" % n)
 
 
+# T13: точечные патчи сценариев 02-pl-auto (применяются к сгенерированному
+# feature-файлу ДО батчей; все значения уже подставлены из фикстур).
+# НВ00-000009: РС АпкСчетчикТранспортныхСредств, ключ (Период, ТС) —
+# конфликт с НВЦБ-000002 (КАМАЗ Т836ХН36) в тот же день; ТС сценария
+# меняется на КАМАЗ Т835ХН36 — та же модель КАМАЗ-65115 (нормы
+# расхода те же), АпкСкладБака заполнен, остаток 162 л, последний
+# счётчик 76988 < СпидометрВыезд 89999 (COM-зонд tmp/t13/, 26.10).
+# НВ00-000004 (Toyota, «Доставка документов»): ТипЗатрат
+# «Общехозяйственные» не перехватывается
+# АпкРастениеводствоКлиент.АналитикаРасходовНачалоВыбора
+# (Module.bsl:349-447) → стандартная форма выбора по типу реквизита —
+# окно «Структура предприятия», значение «Автопарк» (фикстура).
+PLAUTO_PATCHES = {
+    "НВ00-000009": (("replace", u"КАМАЗ-65115, Гос.№Т836ХН36",
+                     u"КАМАЗ-65115, Гос.№Т835ХН36"),),
+    # НВ00-000004: ввод текста в поле аналитики (стандартный выбор по
+    # строке; «Автопарк» уникален → подстановка без окна). UIA-клик по
+    # '<PID> Автопарк Наименование' в динамической форме выбора
+    # «Структура предприятия» не работает (итер.7: окно открылось,
+    # клик failed) — окно вообще не открываем.
+    "НВ00-000004": (("block",
+                     u'нажимаю кнопку выбора у реквизита с именем '
+                     u'"ВыполненныеРаботыАналитикаРасходов"',
+                     u'поле с именем "ВыполненныеРаботыАналитикаРасходов" '
+                     u'имеет значение',
+                     (u'\tИ в таблице "ВыполненныеРаботы" в поле с именем '
+                      u'"ВыполненныеРаботыАналитикаРасходов" я ввожу текст "Автопарк"',
+                      u'\tИ в таблице "ВыполненныеРаботы" я завершаю редактирование строки',
+                      u'\tИ Пауза 1',
+                      u'\tИ в таблице "ВыполненныеРаботы" поле с именем '
+                      u'"ВыполненныеРаботыАналитикаРасходов" имеет значение "Автопарк"')),),
+}
+
+
+def _patch_plauto_feature(fpath):
+    """Патчит сценарные блоки 02-pl-auto по PLAUTO_PATCHES.
+    Возвращает (n_scen, n_patched, лог-строки)."""
+    with io.open(fpath, encoding="utf-8-sig") as f:
+        lines = f.readlines()
+    blocks, cur_title, cur = [], None, []
+    for ln in lines:
+        s = ln.lstrip()
+        if s.startswith(u"Сценарий:") or s.startswith("Scenario:"):
+            if cur_title is not None:
+                blocks.append((cur_title, cur))
+            cur_title, cur = s, []
+        elif cur_title is not None:
+            cur.append(ln)
+        else:
+            blocks.append((None, [ln]))
+    if cur_title is not None:
+        blocks.append((cur_title, cur))
+    n_scen, n_pat, pat_log = 0, 0, []
+    out = []
+    for title, blines in blocks:
+        if title is None:
+            out.extend(blines)
+            continue
+        n_scen += 1
+        replaced = []
+        for key, subs in PLAUTO_PATCHES.items():
+            if key not in title:
+                continue
+            for op in subs:
+                if op[0] == "replace":
+                    _, old, new = op
+                    joined = "".join(blines)
+                    if old in joined:
+                        blines = [joined.replace(old, new)]
+                        replaced.append("%s: replace → %s" % (key, new))
+                elif op[0] == "block":
+                    _, start_m, end_m, new_lines = op
+                    i0 = next((i for i, l in enumerate(blines)
+                               if start_m in l), None)
+                    i1 = next((i for i, l in enumerate(blines)
+                               if end_m in l), None)
+                    if i0 is not None and i1 is not None and i1 >= i0:
+                        blines = (blines[:i0]
+                                  + [l + "\n" for l in new_lines]
+                                  + blines[i1 + 1:])
+                        replaced.append("%s: block -> ввод текста "
+                                        "(Автопарк)" % key)
+        if replaced:
+            n_pat += 1
+            pat_log.extend(replaced)
+        out.append(title)
+        out.extend(blines)
+    if n_pat:
+        with io.open(fpath, "w", encoding="utf-8") as f:
+            f.writelines(out)
+    return n_scen, n_pat, pat_log
+
+
 def prepare_real_manifest(run_dir, checks):
     """Real-режим: манифест НЕ ограничивается (реальные авторы),
     smoke маршрутизируется первому автору (D-003), добавляется
@@ -612,44 +705,27 @@ def prepare_real_manifest(run_dir, checks):
             "12-000099/100 конфликтуют при нескольких сценариях); "
             "отложено: %d" % dropped_w)
     if seen_plauto:
-        log("[real] 02-pl-auto: оставлен 1 сценарий на автора "
-            "(счётчик ТС: ключ РС (Дата, ТС), два документа на один "
-            "ТС в день конфликтуют); остальное pending")
+        log("[real] 02-pl-auto: все сценарии манифеста (счётчик ТС: "
+            "конфликт 009 решён свапом ТС, аналитика 004 — патчем окна; "
+            "см. _patch_plauto_feature)")
     if dropped:
         log("[real] невалидированные шаблоны отложены (runbook §6): %s"
             % ", ".join(dropped))
-    # T12: 02-pl-auto — прогоняется содержимое .feature, а
-    # expected_positive считается из scenarios манифеста: обрезаем
-    # файл до первого сценария (НВЦБ-000002) и синхронизируем запись.
+    # T13: 02-pl-auto — сценарии 002/009/004 гоняются все (обрезка снята);
+    # точечные патчи блоков сценариев — _patch_plauto_feature().
     for e in files:
         if e.get("template") != "02-pl-auto":
             continue
         fpath = e.get("file", "")
         if not os.path.isfile(fpath):
             return None, "02-pl-auto: файл не найден (%s)" % fpath
-        with io.open(fpath, encoding="utf-8-sig") as f:
-            lines = f.readlines()
-        out, n_scen = [], 0
-        for ln in lines:
-            s = ln.lstrip()
-            if s.startswith("Сценарий:") or s.startswith("Scenario:"):
-                n_scen += 1
-                if n_scen > 1:
-                    break
-            out.append(ln)
-        while out and not out[-1].strip():
-            out.pop()
-        if n_scen > 1:
-            with io.open(fpath, "w", encoding="utf-8") as f:
-                f.writelines(out)
-            docs = e.get("documents") or []
-            e["scenarios"] = 1
-            if len(docs) > 1:
-                e["documents"] = docs[:1]
-            log("[real] 02-pl-auto: feature-файл обрезан до 1 сценария "
-                "(%s), documents=%s"
-                % (os.path.basename(fpath),
-                   ", ".join(e.get("documents") or [])))
+        n_scen, n_pat, pat_log = _patch_plauto_feature(fpath)
+        if n_scen <= 0:
+            return None, "02-pl-auto: сценариев не найдено (%s)" % fpath
+        e["scenarios"] = n_scen
+        if pat_log:
+            log("[real] 02-pl-auto: сценариев=%d, патчей=%d (%s)"
+                % (n_scen, n_pat, "; ".join(pat_log)))
     fdir = os.path.join(run_dir, "features")
 
     # D-003: smoke как первый батч под первым автором
