@@ -265,6 +265,17 @@ def prepare_exclusive(deny_msg=""):
     """
     rac_sessions_deny_set(False, deny_msg)  # страховка: точно off
     alive = rac_ib_sessions_terminate()
+    # T18 28.10: rac terminate асинхронен — BackgroundJob-сеансы умирают
+    # не мгновенно; одиночный подсчёт сразу после terminate ловит ещё
+    # живые сеансы (03:19 abort: 6 alive при фактически завершаемом
+    # процессе). Retry до 3 раундов с паузой 15с.
+    attempt = 1
+    while alive > 0 and attempt < 3:
+        log("   exclusive-prep: живых=%d, retry %d после паузы 15с"
+            % (alive, attempt))
+        time.sleep(15)
+        alive = rac_ib_sessions_terminate()
+        attempt += 1
     log("   exclusive-prep: живых сеансов ИБ после завершения=%d" % alive)
     return alive == 0
 
