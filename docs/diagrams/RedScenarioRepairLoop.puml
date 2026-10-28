@@ -1,0 +1,86 @@
+@startuml RedScenarioRepairLoop
+' Диагностическая петля красного сценария (сердце метода)
+top to bottom direction
+skinparam ranksep 10
+skinparam dpi 80
+skinparam packageTitleAlignment left
+
+skinparam usecase {
+  BackgroundColor LightPink
+}
+skinparam note {
+  BackgroundColor LightBlue
+}
+skinparam rectangle {
+  BackgroundColor LightGray
+}
+
+usecase/ С.0 as "Начало процесса: сценарий красный (Failed в regress-report)"
+
+usecase Ф.1 #AAFFAA as "
+Инженер
+====
+Локализовать упавший шаг
+----
+П-201"
+note left of Ф.1
+run_log.txt: последний шаг,
+ЗаголовокАктивногоОкна,
+ИмяАктивнойФормы, Failed-текст
+-> классифицировать: окно /
+поле / значение / таймаут
+end note
+
+usecase У.1 as (**XOR**)
+
+usecase Ф.2 #AAFFAA as "
+Инженер
+====
+Проверить гипотезу механики зонд-фичей
+----
+П-202"
+note left of Ф.2
+- диагностическая фича с 1-2
+  шагами + заведомо неверный
+  assert ловит фактический
+  заголовок окна
+- COM-проверка данных/настроек
+  параллельно (не через UI)
+- одна гипотеза — один зонд
+end note
+
+usecase/ С.1 as "Механика шага подтверждена"
+
+usecase Ф.3 #AAFFAA as "
+Инженер
+====
+Собрать кандидат-сценарий и прогнать
+----
+П-203"
+note left of Ф.3
+ЦЕЛИКОМ весь сценарий (не шаг):
+python tmp/t16/diag_run.py <run>
+"<фича>" admin|sokolov
+status.txt = 0, дока проведена,
+cleanup пробных доков (свежий
+COM; прямой Удалить без
+ОтменыПроведения)
+end note
+
+usecase У.2 as (**XOR**)
+
+usecase/ С.2 as "Рецепт валидирован (status 0) — передать в Часть 2, П-107"
+
+usecase/ С.3 as "Конец процесса"
+
+С.0 -d-> Ф.1
+Ф.1 -d-> У.1
+У.1 -d-> Ф.3 : да
+У.1 -d-> Ф.2 : нет
+Ф.2 -d-> С.1
+С.1 -d-> Ф.3
+Ф.3 -d-> У.2
+У.2 -d-> С.2 : да
+У.2 -u-> Ф.2 : нет — новая гипотеза
+С.2 -d-> С.3
+@enduml

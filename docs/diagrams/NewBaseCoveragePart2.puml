@@ -1,0 +1,96 @@
+@startuml NewBaseCoveragePart2
+' Покрытие новой базы: Часть 2 — доведение до зелёного гейта
+top to bottom direction
+skinparam ranksep 10
+skinparam dpi 80
+skinparam packageTitleAlignment left
+
+skinparam usecase {
+  BackgroundColor LightPink
+}
+skinparam note {
+  BackgroundColor LightBlue
+}
+skinparam rectangle {
+  BackgroundColor LightGray
+}
+
+usecase/ С.0 as "Начало части 2: сценарии сгенерированы (из Части 1)"
+
+usecase Ф.5 #AAFFAA as "
+Инженер
+====
+Прогнать полный гейт и прочитать отчёт
+----
+П-105"
+note left of Ф.5
+regress_run.py --rehearsal
+--real-authors
+tmp/regress/<ts>/regress-report.md:
+статусы сценариев, регрессии,
+батчи, фазы (dump/gate/rollback)
+end note
+
+usecase У.1 as (**XOR**)
+
+usecase Ф.6 #AAFFAA as "
+Инженер
+====
+Диагностическая петля красного сценария
+----
+П-106"
+note left of Ф.6
+См. схему RedScenarioRepairLoop
+(tmp/t16/diag_run.py, зонды
+механики форм, кандидат-фича
+status=0 + дока проведена)
+end note
+
+usecase/ С.1 as "Рецепт красного сценария валидирован"
+
+usecase Ф.7 #AAFFAA as "
+Инженер
+====
+Залить патч и проверить офлайн
+----
+П-107"
+note left of Ф.7
+SCENARIO_PATCHES в scripts/t8_gate.py:
+block / replace / drop
+_флаг-проверка _patch_scenarios:
+сценарии 1-в-1 с валидированным
+кандидатом, литералы вместо
+{{header.*}} для не-СПоля
+end note
+
+usecase/ С.2 as "Все сценарии зелёные"
+
+usecase Ф.8 #AAFFAA as "
+Инженер
+====
+Зафиксировать результат
+----
+П-108"
+note left of Ф.8
+- повторный прогон: PASS 2 раза
+- --set-baseline (baseline-real.json)
+- git commit
+- night-report-<дата>.md
+- факты -> tmp/s004/facts-*.md
+end note
+
+usecase/ С.3 as "База покрыта: зелёный гейт + baseline"
+
+usecase/ С.4 as "Конец процесса"
+
+С.0 -d-> Ф.5
+Ф.5 -d-> У.1
+У.1 -d-> С.2 : да
+У.1 -d-> Ф.6 : нет (красные есть)
+Ф.6 -d-> С.1
+С.1 -d-> Ф.7
+Ф.7 -u-> Ф.5
+С.2 -d-> Ф.8
+Ф.8 -d-> С.3
+С.3 -d-> С.4
+@enduml

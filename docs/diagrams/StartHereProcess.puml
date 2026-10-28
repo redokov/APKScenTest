@@ -1,0 +1,114 @@
+@startuml StartHereProcess
+' Как начинать: первая сессия на проекте APKScenTest
+top to bottom direction
+skinparam ranksep 10
+skinparam dpi 80
+skinparam packageTitleAlignment left
+
+skinparam usecase {
+  BackgroundColor LightPink
+}
+skinparam note {
+  BackgroundColor LightBlue
+}
+skinparam rectangle {
+  BackgroundColor LightGray
+}
+
+usecase/ С.0 as "Начало процесса: новая сессия на проекте"
+
+usecase Ф.1 #AAFFAA as "
+Инженер
+====
+Прочитать опорные документы проекта
+----
+П-001"
+note left of Ф.1
+**Что читать (30 мин):**
+- docs/runbook.md — гейт
+- docs/night-report-<последний>.md
+- tmp/s004/facts-e2e-runs.md — ловушки
+- docs/fixture-model.md — фикстуры
+end note
+
+usecase/ С.1 as "Картина проекта собрана"
+
+usecase Ф.2 #AAFFAA as "
+Инженер
+====
+Проверить инфраструктуру стенда
+----
+П-002"
+note left of Ф.2
+**Чек (5 мин):**
+- COM-коннект к базе (python + V85)
+- RAS: netstat :1545, rac session list
+- guard: tests/pwd-guard/*.active.json
+- свободное место >= 5 ГБ
+end note
+
+usecase У.1 as (**XOR**)
+
+usecase Ф.3 #AAFFAA as "
+Инженер
+====
+Починить инфраструктуру
+----
+П-003"
+note left of Ф.3
+- RAS мёртв: rac врёт «0 сеансов»
+  ras.exe cluster --port=1545
+  localhost:1540
+- ghost-сеансы — только по правилу
+  Ловушка-2 (conn+process+infobase)
+- 1cv8/ragent/BackgroundJob НЕ трогать
+end note
+
+usecase/ С.2 as "Инфраструктура исправна"
+
+usecase Ф.4 #AAFFAA as "
+Инженер
+====
+Запустить репетицию гейта
+----
+П-004"
+note left of Ф.4
+nohup python scripts/regress_run.py
+  --rehearsal --real-authors
+& (nohup — отдельной строкой,
+БЕЗ && в цепочке)
+~33 мин, НЕ после 08:30 MSK
+end note
+
+usecase У.2 as (**XOR**)
+
+usecase Ф.5 #AAFFAA as "
+Инженер
+====
+Разобрать сбой по runbook §4
+----
+П-005"
+note left of Ф.5
+FAIL: снять guard вручную после
+проверки снапшота (pwdSet=false,
+батчи pwd=True)
+end note
+
+usecase/ С.3 as "VERDICT: PASS — готов к работе"
+
+usecase/ С.4 as "Конец процесса"
+
+С.0 -d-> Ф.1
+Ф.1 -d-> С.1
+С.1 -d-> Ф.2
+Ф.2 -d-> У.1
+У.1 -d-> С.2 : да
+У.1 -d-> Ф.3 : нет
+Ф.3 -u-> Ф.2
+С.2 -d-> Ф.4
+Ф.4 -d-> У.2
+У.2 -d-> С.3 : да
+У.2 -d-> Ф.5 : нет
+Ф.5 -u-> Ф.4
+С.3 -d-> С.4
+@enduml

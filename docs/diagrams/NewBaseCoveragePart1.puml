@@ -1,0 +1,95 @@
+@startuml NewBaseCoveragePart1
+' Покрытие новой базы: Часть 1 — подготовка стенда и сценариев
+top to bottom direction
+skinparam ranksep 10
+skinparam dpi 80
+skinparam packageTitleAlignment left
+
+skinparam usecase {
+  BackgroundColor LightPink
+}
+skinparam note {
+  BackgroundColor LightBlue
+}
+skinparam rectangle {
+  BackgroundColor LightGray
+}
+
+usecase/ С.0 as "Начало процесса: нужно покрыть тестами новую базу 1С"
+
+usecase Ф.1 #AAFFAA as "
+Инженер
+====
+Обследовать базу COM-зондом
+----
+П-101"
+note left of Ф.1
+- V85.COMConnector: сервер, Ref,
+  версия платформы
+- целевые документы/процессы
+  (метаданные, формы, модули)
+- демо-данные: фикстуры-эталоны,
+  авторы-владельцы документов
+- лицензии: клиентская, серверная
+end note
+
+usecase/ С.1 as "Целевые документы и процессы выбраны"
+
+usecase Ф.2 #AAFFAA as "
+Инженер
+====
+Развернуть тестовый стенд
+----
+П-102"
+note left of Ф.2
+- копия базы dev_* (dt-дамп),
+  НЕ рабочая база
+- RAS на 1545 + rac
+- scheduled-jobs-deny на прогонах
+- >= 5 ГБ свободно (dt ~1.7 ГБ)
+- админ-пользователь для COM
+end note
+
+usecase Ф.3 #AAFFAA as "
+Инженер
+====
+Сформировать план и фикстуры
+----
+П-103"
+note left of Ф.3
+- plan users: авторы дков
+  (ibUser, sourceAuthor, сценарии)
+- эталонные документы-фикстуры
+  (НВ00-000001..NN)
+- fixtures.json, coverage-map
+end note
+
+usecase Ф.4 #AAFFAA as "
+Инженер
+====
+Написать шаблоны сценариев
+----
+П-104"
+note left of Ф.4
+tests/templates/*.feature:
+- шаги VA под механику форм:
+  dropdown «по строке» /
+  форма выбора + UIA /
+  прямые поля
+- {{header.*}} только для СПоля,
+  иначе литералы фикстур
+- neg-шаблон (права «нет»)
+end note
+
+usecase/ С.2 as "Сценарии генерируются, гейт запускается (см. Часть 2)"
+
+usecase/ С.3 as "Конец части 1"
+
+С.0 -d-> Ф.1
+Ф.1 -d-> С.1
+С.1 -d-> Ф.2
+Ф.2 -d-> Ф.3
+Ф.3 -d-> Ф.4
+Ф.4 -d-> С.2
+С.2 -d-> С.3
+@enduml
