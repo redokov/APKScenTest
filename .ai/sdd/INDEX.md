@@ -31,7 +31,7 @@
 | 002 | Сценарии растениеводства (rastenievodstvo-scenarios) | implementation:complete (T1–T9 закрыты 2026-10-17, полные E2E-гейты зелёные: run-20261017-060711 = 4/4 rs=0, run-20261017-084258 = 5/5 rs=0, NFR-001 18.3 мин ≤40) | `.ai/sdd/specs/002-rastenievodstvo-scenarios/requirements.md` | `.ai/sdd/specs/002-rastenievodstvo-scenarios/design.md` | `.ai/sdd/specs/002-rastenievodstvo-scenarios/tasks.md` | — |
 | 003 | Регресс-конвейер (regression-conveyor) | review:done (Approved with follow-ups, 2026-10-19: T1–T6/T8/T9 закрыты E2E; T7 веб — deferred средой (лицензия), evidence зафиксирован) | `.ai/sdd/specs/003-regression-conveyor/requirements.md` | `.ai/sdd/specs/003-regression-conveyor/design.md` | `.ai/sdd/specs/003-regression-conveyor/tasks.md` | `.ai/sdd/specs/003-regression-conveyor/review.md` |
 | 004 | Реальные авторы + негативные (real-authors-negative) | tasks:approved (механизмы реализованы в BSL-раннере и подтверждены ночными гейтами T13–T18: 16/16 + neg, baseline run-20261028-062621) | `.ai/sdd/specs/004-real-authors-negative/requirements.md` | `.ai/sdd/specs/004-real-authors-negative/design.md` | `.ai/sdd/specs/004-real-authors-negative/tasks.md` | — |
-| 005 | Чистый 1С-комплект (pure-1c-kit, Фаза 6 — коррекция миграции цели 28.10) | requirements:draft (ждёт утверждения; design/tasks — draft) | `.ai/sdd/specs/005-pure-1c-kit/requirements.md` | `.ai/sdd/specs/005-pure-1c-kit/design.md` | `.ai/sdd/specs/005-pure-1c-kit/tasks.md` | — |
+| 005 | Чистый 1С-комплект (pure-1c-kit, Фаза 6 — коррекция миграции цели 28.10) | tasks:approved (28.10: requirements + TD-001..004 утверждены пользователем; старт — ночь 28/29.10, офлайн-часть) | `.ai/sdd/specs/005-pure-1c-kit/requirements.md` | `.ai/sdd/specs/005-pure-1c-kit/design.md` | `.ai/sdd/specs/005-pure-1c-kit/tasks.md` | — |
 
 ## Handoff
 
@@ -46,4 +46,4 @@
 - [x] Спека 003 финал 2026-10-19: T9 --baseline-dt E2E зелёный (20261019-094315); T8 чекбокс закрыт; T7 — механика готова, прогон заблокирован лицензией среды (deferred-with-evidence); review.md Approved with follow-ups; .status review:done
 - [x] Open Q дизайна «наряд → АРМ ВыработкиСотрудников» — верифицирован по модулям (ManagerModule:209,353,874 → АРМ:117), coverage-map `verified:true`
 - [x] coverage-map обогащён: каталожные оси ЗаправочныхВедомостей (docField/valuePath/tabularSources)
-- [ ] Спека 005 «Чистый 1С-комплект» (Фаза 6): requirements:draft — утверждение пользователем → design/tasks финализация → реализация T1…T8 (возврат продукта к цели: рабочий прогон целиком в 1С, без python/COM/LLM)
+- [ ] Спека 005 «Чистый 1С-комплект» (Фаза 6): requirements + TD-001..004 утверждены 28.10 → реализация T1…T8 (возврат продукта к цели: рабочий прогон целиком в 1С, без python/COM/LLM); старт — ночная сессия 28/29.10 (офлайн-часть: T1 аудит, T2 патчи→1С, T5 канонизация src/АпкРаннер, T7 инструкция, код T4)
