@@ -9,6 +9,11 @@
 				<CommandName>Form.Command.СканироватьДокументы</CommandName>
 				<ExtendedTooltip name="СканироватьДокументыРасширеннаяПодсказка" id="2"/>
 			</Button>
+			<Button name="СгенерироватьФичи" id="119">
+				<Type>CommandBarButton</Type>
+				<CommandName>Form.Command.СгенерироватьФичи</CommandName>
+				<ExtendedTooltip name="СгенерироватьФичиРасширеннаяПодсказка" id="120"/>
+			</Button>
 			<Button name="ЗапуститьПрогон" id="90">
 				<Type>CommandBarButton</Type>
 				<CommandName>Form.Command.ЗапуститьПрогон</CommandName>
@@ -726,6 +731,21 @@
 				</v8:item>
 			</ToolTip>
 			<Action>СформироватьОтчет</Action>
+		</Command>
+		<Command name="СгенерироватьФичи" id="4">
+			<Title>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Сгенерировать фичи</v8:content>
+				</v8:item>
+			</Title>
+			<ToolTip>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>fixtures.json по scan.json, затем .feature по шаблонам с патчами (features-manifest.json)</v8:content>
+				</v8:item>
+			</ToolTip>
+			<Action>СгенерироватьФичи</Action>
 		</Command>
 	</Commands>
 </Form>
