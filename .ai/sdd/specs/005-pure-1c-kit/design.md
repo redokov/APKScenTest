@@ -48,10 +48,33 @@
 
 | Сегодня (python) | Куда | Замечания |
 |---|---|---|
-| `SCENARIO_PATCHES` (`scripts/t8_gate.py`: block/replace/drop для 14/16/17/18) | данные патчей в комплекте + алгоритм применения в препроцессоре | см. TD-001 |
-| вердикт + baseline-diff (`regress_run.py` отчёт, `tests/baseline/baseline-real.json`) | раннер: отчёт-форма + чтение baseline | см. TD-002 |
-| guard-файлы pwd-guard | не переносится: раннер восстанавливает хэши в своей сессии; guard был защитой внешнего оркестратора | поведение FR-006 |
+| `SCENARIO_PATCHES` (`scripts/t8_gate.py`: block/replace/drop для 14/16/17/18) | данные патчей в комплекте + алгоритм применения в препроцессоре | см. TD-001; реализовано T2 (28/29.10): `tests/templates/scenario-patches.json` + `ПрименитьПатчиСценариев` в ObjectModule |
+| вердикт + baseline-diff (`regress_run.py` отчёт, `tests/baseline/baseline-real.json`) | раннер: отчёт-форма + чтение baseline | см. TD-002; классы REGRESSION/IMPROVED/NEW/MISSING по ключу (scenario, user); `vs baseline` — единственная колонка отчёта без источника в VA/allure (T1-аудит), считается в раннере |
+| guard-файлы pwd-guard | не переносится: раннер восстанавливает хэши в своей сессии; guard был защитой внешнего оркестратора | поведение FR-006 (TD подтверждён 28.10; T1-аудит не нашёл guard-механики в BSL — она только в t8_gate, решение без изменений) |
 | dump/rollback/rac/scheduled-jobs | не переносится (out of scope) — инструкция инженера | FR-010 |
+
+### Дополнение T1-аудита (28/29.10, полная таблица — в отчёте ночи)
+
+- **Python-зависимостей в BSL-механике не найдено**: ObjectModule препроцессора чистый
+  (файлы/JSON/запросы/ПользователиИБ); единственные ОС-вызовы — Windows-COM
+  (`WScript.Shell`: запуск 1cv8c TestManager, taskkill, powershell-зачистка
+  осиротевших TestClient, ping-паузы) в модулях форм — воспроизводимы в чистом 1С
+  на Windows.
+- **Найденная python-зависимость вне BSL (заводим задачу на живую часть T5)**:
+  создание/удаление neg-пользователя (`create_neg_user` в t8_gate.py:479-551 —
+  5 ролей + регистрация в справочнике Пользователи) — перенести в раннер EPF
+  (серверный код); инверсия вердикта и neg-шаблон уже в BSL/комплекте.
+- **Манифест-манипуляции** (allowlist REAL_TEMPLATES, smoke под 1-го автора,
+  вставка neg-фичи, drop из манифеста — `prepare_real_manifest`) — перенести в
+  препроцессор/раннер EPF (живая часть, вместе с neg-пользователем).
+- **Формат per-scenario результатов** (allure `<build>/*-result.json`):
+  `name/status/start/stop` есть; поля `user` в allure НЕТ — берётся из
+  `ИмяСборки`/батча (уже делает BSL `СобратьОтчет` → summary.json:
+  `scenario, user, status, durationMs, batchStatus, returnStatus, negative`).
+- **baseline-real.json**: ключ (scenario, user) → status; `totals` — справка;
+  сравнение только по `scenarios[]`.
+- **Хардкод в раннере**: `ПрочитатьЗадание`/`ЗаписатьАртефакт` пишут пути
+  `tmp/t6/runner_task.json|runner_result.json` — параметризовать при T4.
 
 ## Technical Decisions (проектные решения к обсуждению)
 
