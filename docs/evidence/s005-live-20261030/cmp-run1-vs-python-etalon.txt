@@ -1,0 +1,24 @@
+base: tests/run-20261028-062621/summary.json
+cur : tests/run-20261030-001311/summary.json
+base totals: {'batches': 3, 'scenarios': 17, 'passed': 16, 'failed': 0, 'broken': 0, 'timeout': 0, 'unknown': 0, 'negativePassed': 1, 'negativeFailed': 0}
+cur  totals: {'batches': 2, 'scenarios': 16, 'passed': 16, 'failed': 0, 'broken': 0, 'timeout': 0, 'unknown': 0, 'negativePassed': 0, 'negativeFailed': 0}
+
+(Administrator-OrlovAV) Ввод взвешивания НВ00-000003 Администратор (ОрловАВ)    passed    =
+(Administrator-OrlovAV) Ввод и проведение наряда на сдельную работу НВЦБ-000001 Администратор (ОрловАВ)    passed    =
+(Administrator-OrlovAV) Ввод и проведение путевого листа автотранспорта НВ00-000004 Администратор (ОрловАВ)    passed    =
+(Administrator-OrlovAV) Ввод и проведение путевого листа автотранспорта НВ00-000009 Администратор (ОрловАВ)    passed    =
+(Administrator-OrlovAV) Ввод и проведение путевого листа автотранспорта НВЦБ-000002 Администратор (ОрловАВ)    passed    =
+(Administrator-OrlovAV) Ввод и проведение путевого листа тракториста НВ00-000001 Администратор (ОрловАВ)    passed    =
+(Administrator-OrlovAV) Отражение выработки сотрудников Администратор (ОрловАВ)    passed    =
+(Administrator-OrlovAV) Отражение расхода топлива Администратор (ОрловАВ)    passed    =
+(Administrator-OrlovAV) Подключение TestClient и закрытие окон Администратор (ОрловАВ)    passed    =
+(Administrator-SokolovMI) Ввод взвешивания НВ00-000014 Администратор (СоколовМИ)  passed    =
+(Administrator-SokolovMI) Ввод взвешивания НВ00-000016 Администратор (СоколовМИ)  passed    =
+(Administrator-SokolovMI) Ввод взвешивания НВ00-000017 Администратор (СоколовМИ)  passed    =
+(Administrator-SokolovMI) Ввод взвешивания НВ00-000018 Администратор (СоколовМИ)  passed    =
+(Administrator-SokolovMI) Ввод и проведение заправочной ведомости НВ00-000001 Администратор (СоколовМИ)  passed    =
+(Administrator-SokolovMI) Отражение заправок топлива Администратор (СоколовМИ)  passed    =
+(Administrator-SokolovMI) Подключение TestClient и закрытие окон Администратор (СоколовМИ)  passed    =
+(ApkScenTest-Negativ1) Негатив - запись путевого листа без прав АпкСценТест_Негатив1                 MISSING  <-- BLOCKER
+
+blockers (REGRESSION/MISSING): 1

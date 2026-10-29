@@ -1,0 +1,19 @@
+totals: {'batches': 2, 'scenarios': 16, 'passed': 10, 'failed': 6, 'broken': 0, 'timeout': 0, 'unknown': 0, 'negativePassed': 0, 'negativeFailed': 0}
+  (Administrator-OrlovAV) Ввод и проведени Администратор (ОрловАВ) failed
+  (Administrator-OrlovAV) Ввод и проведени Администратор (ОрловАВ) passed
+  (Administrator-OrlovAV) Подключение Test Администратор (ОрловАВ) passed
+  (Administrator-OrlovAV) Ввод и проведени Администратор (ОрловАВ) failed
+  (Administrator-OrlovAV) Отражение расход Администратор (ОрловАВ) passed
+  (Administrator-OrlovAV) Ввод взвешивания Администратор (ОрловАВ) failed
+  (Administrator-OrlovAV) Ввод и проведени Администратор (ОрловАВ) failed
+  (Administrator-OrlovAV) Ввод и проведени Администратор (ОрловАВ) failed
+  (Administrator-OrlovAV) Отражение вырабо Администратор (ОрловАВ) passed
+  (Administrator-SokolovMI) Ввод взвешиван Администратор (СоколовМИ) passed
+  (Administrator-SokolovMI) Отражение запр Администратор (СоколовМИ) passed
+  (Administrator-SokolovMI) Ввод взвешиван Администратор (СоколовМИ) passed
+  (Administrator-SokolovMI) Ввод взвешиван Администратор (СоколовМИ) passed
+  (Administrator-SokolovMI) Ввод взвешиван Администратор (СоколовМИ) failed
+  (Administrator-SokolovMI) Ввод и проведе Администратор (СоколовМИ) passed
+  (Administrator-SokolovMI) Подключение Te Администратор (СоколовМИ) passed
+{'batch': 1, 'status': 'failed', 'verdict': 'failed', 'passwordRestored': True}
+{'batch': 2, 'status': 'failed', 'verdict': 'failed', 'passwordRestored': True}

@@ -1,0 +1,21 @@
+{
+"runId": "20261030-001311",
+"finishedAt": "2026-10-30T00:44:22",
+"batches": [
+{
+"user": "Администратор (ОрловАВ)",
+"batch": 1,
+"status": "aborted",
+"returnStatus": "",
+"verdict": "unknown",
+"durationSec": 5.073,
+"pid": 21520,
+"passwordRestored": true,
+"pwdSubstituted": false,
+"negative": false,
+"zodRestored": true,
+"killConfirmed": true,
+"error": ""
+}
+]
+}

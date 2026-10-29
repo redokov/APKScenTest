@@ -1,0 +1,25 @@
+files: 11
+ Администратор (ОрловАВ) / 00-smoke : 0
+ Администратор (ОрловАВ) / 05-weighing : 1
+ Администратор (ОрловАВ) / 03-piece-work-order : 1
+ Администратор (ОрловАВ) / 02-pl-auto : 3
+ Администратор (ОрловАВ) / 01-pl-tractor : 1
+ Администратор (СоколовМИ) / 00-smoke : 0
+ Администратор (СоколовМИ) / 05-weighing : 4
+ Администратор (СоколовМИ) / 04-fuel-sheet : 1
+ Администратор (СоколовМИ) / arm-fuel-receipt : 0
+ Администратор (ОрловАВ) / arm-payroll : 0
+ Администратор (ОрловАВ) / arm-fuel-expense : 0
+warnings:
+ - Патчи сценариев: шаблонов 2 (C:/MyProjects/APKScenTest/tests/templates/scenario-patches.json)
+ - Неизвестный плейсхолдер {{row.Тонн}}
+ - Шаг пропущен (пустой/нулевой реквизит строки): И в таблице "ВыполненныеРаботы" в поле с именем "ВыполненныеРаботыТонн" я ввожу текст "{{row.Тонн}}"
+ - Неизвестный плейсхолдер {{header.ОткудаТекущий}}
+ - Неизвестный плейсхолдер {{header.ОткудаТекущий}}
+ - Неизвестный плейсхолдер {{header.Автомобиль}}
+ - Неизвестный плейсхолдер {{header.ОткудаТекущий}}
+ - Неизвестный плейсхолдер {{header.ОткудаТекущий}}
+ - Шаблон не найден: C:/MyProjects/APKScenTest/tests/templates/arm-transfer.feature
+ - Шаблон не найден: C:/MyProjects/APKScenTest/tests/templates/arm-sale.feature
+ - Шаблон не найден: C:/MyProjects/APKScenTest/tests/templates/arm-purchase.feature
+ - Шаблон не найден: C:/MyProjects/APKScenTest/tests/templates/arm-field-harvest.feature

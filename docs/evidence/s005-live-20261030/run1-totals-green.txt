@@ -1,0 +1,15 @@
+# Полный прогон #1 (runner-form-full.feature, старт 00:45, финал ~00:58)
+# Живой BSL-раннер, tests/run-20261030-001311, baseline-real.json.
+# Сводка summary.json на момент прогона #1 (захвачена в 00:59,
+# до того как прогон #2 перезаписал каталог):
+totals: batches=2, scenarios=16, passed=16, failed=0, broken=0,
+        timeout=0, unknown=0, negativePassed=0, negativeFailed=0
+batches: 1 Администратор (ОрловАВ) ok/ok 443.5s passwordRestored=true
+         2 Администратор (СоколовМИ) ok/ok 191.8s passwordRestored=true
+# Вердикт-панель (шаг фичи 'Если Найти($ВердиктПрогона$,"PASS.") = 0'
+# ПРОШЁЛ в прогоне #1 - см. tmp/s005/va/runner-full/va_1c.log,
+# падение фичи было только на следующем, перестрогом ассерте
+# 'регрессий 0' при фактических 'регрессий 1' (MISSING neg, T5)):
+# 'PASS. passed=16 failed=0 ... регрессий 1 vs baseline'
+# Сравнение с python-эталоном - cmp-run1-vs-python-etalon.txt
+# (16/16 '=', 1 MISSING = neg-сценарий АпкСценТест_Негатив1).

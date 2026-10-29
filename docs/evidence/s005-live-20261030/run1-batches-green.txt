@@ -1,0 +1,6 @@
+{'batch': 1, 'user': 'Администратор (ОрловАВ)', 'status': 'ok', 'verdict': 'ok', 'durationSec': 443.486}
+{'batch': 2, 'user': 'Администратор (СоколовМИ)', 'status': 'ok', 'verdict': 'ok', 'durationSec': 191.752}
+allure: Administrator-OrlovAV 18
+  last: 8042438c-6b6e-46af-9809-6840fe0f3f83-container.json 00:54:49
+allure: Administrator-SokolovMI 16
+  last: f8b27a2e-0a59-47a1-8874-8ee0af38b92f-result.json 00:58:01

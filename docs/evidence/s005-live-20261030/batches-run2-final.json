@@ -1,0 +1,36 @@
+{
+"runId": "20261030-001311",
+"finishedAt": "2026-10-30T01:16:58",
+"batches": [
+{
+"user": "Администратор (ОрловАВ)",
+"batch": 1,
+"status": "failed",
+"returnStatus": "1",
+"verdict": "failed",
+"durationSec": 361.633,
+"pid": 18348,
+"passwordRestored": true,
+"pwdSubstituted": false,
+"negative": false,
+"zodRestored": true,
+"killConfirmed": true,
+"error": ""
+},
+{
+"user": "Администратор (СоколовМИ)",
+"batch": 2,
+"status": "failed",
+"returnStatus": "1",
+"verdict": "failed",
+"durationSec": 201.976,
+"pid": 20020,
+"passwordRestored": true,
+"pwdSubstituted": false,
+"negative": false,
+"zodRestored": true,
+"killConfirmed": true,
+"error": ""
+}
+]
+}
