@@ -6,21 +6,21 @@
 				<xr:ClassId>c3831ec8-d8d5-4f93-8a22-f9bfae07327f</xr:ClassId>
 				<xr:ObjectId>9b2e6d40-aaaa-bbbb-cccc-ddddeeeeffff</xr:ObjectId>
 			</xr:ContainedObject>
-			<xr:GeneratedType name="ExternalDataProcessorObject.КомпиляторГейт" category="Object">
+			<xr:GeneratedType name="ExternalDataProcessorObject.АпкРаннер" category="Object">
 				<xr:TypeId>d4a1b7c3-aaaa-2222-3333-6c78d1e0f404</xr:TypeId>
 				<xr:ValueId>e7c3a915-bbbb-5555-6666-6c78d1e0f405</xr:ValueId>
 			</xr:GeneratedType>
 		</InternalInfo>
 		<Properties>
-			<Name>КомпиляторГейт</Name>
+			<Name>АпкРаннер</Name>
 			<Synonym>
 				<v8:item>
 					<v8:lang>ru</v8:lang>
-					<v8:content>КомпиляторГейт</v8:content>
+					<v8:content>АпкРаннер</v8:content>
 				</v8:item>
 			</Synonym>
 			<Comment>Открывает форму EPF из /C-параметра, ловит ошибки компиляции, пишет build/test/compile_check.json</Comment>
-			<DefaultForm>ExternalDataProcessor.КомпиляторГейт.Form.Форма</DefaultForm>
+			<DefaultForm>ExternalDataProcessor.АпкРаннер.Form.Форма</DefaultForm>
 			<AuxiliaryForm/>
 		</Properties>
 		<ChildObjects>
