@@ -99,7 +99,9 @@ def main():
         lines = body.splitlines()
         for i, ln in enumerate(lines):
             if "не выполнен" in ln or "Ошибка" in ln[:40]:
-                print("\n".join(lines[max(0, i - 2):i + 12])[:3000], flush=True)
+                txt = "\n".join(lines[max(0, i - 2):i + 12])[:3000]
+                enc = sys.stdout.encoding or "cp1251"
+                print(txt.encode(enc, errors="replace").decode(enc), flush=True)
                 break
         sys.exit(1)
 
