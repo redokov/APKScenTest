@@ -1,0 +1,7 @@
+﻿ВердиктНег = PASS. passed=0 failed=0 broken=0 timeout=0 unknown=0 neg-passed=1 neg-failed=0
+регрессий 16 vs baseline run-20261028-062621
+30.10.2026 6:45:08 Выполнение сценариев закончено. Ошибок не было.
+Закрытие TestClient <Этот клиент>
+Не найден профиль клиента тестирования <Этот клиент> чтобы его закрыть.
+Закрытие TestClient <Основной>
+30.10.2026 6:45:12 Записан файл статуса сборки: c:\MyProjects\APKScenTest\tmp\s005\va\t5-negrun7\va_status.log
