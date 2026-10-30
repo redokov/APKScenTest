@@ -7,6 +7,8 @@
  "projectDir": "C:\\MyProjects\\APKScenTest",
  "templatesDir": "tests/templates",
  "smokeTemplate": "00-smoke",
+ "negUser": "АпкСценТест_Негатив1",
+ "negTemplate": "neg-pl-denied",
  "coverageMapPath": "tests/coverage-map.json",
  "runsBaseDir": "tests",
  "adminUser": "Администратор (ОрловАВ)",
