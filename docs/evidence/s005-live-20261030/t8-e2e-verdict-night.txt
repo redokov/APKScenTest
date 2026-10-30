@@ -1,0 +1,31 @@
+=== T8 E2E night run 31.10.2026 (clean session, idle desktop) ===
+Feature: tests/features/s005/t8-e2e.feature
+Runner: python scripts/s005_va_run.py ... t8-e2e-night 1800
+ReturnStatus=0, duration 764 sec
+
+﻿КаталогПрогона = C:/MyProjects/APKScenTest/tests/run-20261030-225824
+ВердиктE2E = PASS. passed=16 failed=0 broken=0 timeout=0 unknown=0 neg-passed=1 neg-failed=0
+регрессий 0 vs baseline run-20261028-062621
+
+=== summary.json (tests/run-20261030-225824) ===
+totals: {"batches": 3, "scenarios": 17, "passed": 16, "failed": 0, "broken": 0, "timeout": 0, "unknown": 0, "negativePassed": 1, "negativeFailed": 0}
+passwords: mismatch=[] restored=3 substituted=1
+
+scenarios: 17
+  [passed] (Administrator-OrlovAV) Отражение расхода топлива (57896 ms)
+  [passed] (Administrator-OrlovAV) Ввод и проведение путевого листа автотранспорта НВЦБ-000002 (31698 ms)
+  [passed] (Administrator-OrlovAV) Отражение выработки сотрудников (172061 ms)
+  [passed] (Administrator-OrlovAV) Ввод и проведение путевого листа автотранспорта НВ00-000009 (31492 ms)
+  [passed] (Administrator-OrlovAV) Ввод взвешивания НВ00-000003 (25796 ms)
+  [passed] (Administrator-OrlovAV) Ввод и проведение наряда на сдельную работу НВЦБ-000001 (7721 ms)
+  [passed] (Administrator-OrlovAV) Ввод и проведение путевого листа тракториста НВ00-000001 (39432 ms)
+  [passed] (Administrator-OrlovAV) Ввод и проведение путевого листа автотранспорта НВ00-000004 (27416 ms)
+  [passed] (Administrator-OrlovAV) Подключение TestClient и закрытие окон (17062 ms)
+  [passed] (Administrator-SokolovMI) Ввод взвешивания НВ00-000014 (10963 ms)
+  [passed] (Administrator-SokolovMI) Ввод взвешивания НВ00-000017 (10563 ms)
+  [passed] (Administrator-SokolovMI) Подключение TestClient и закрытие окон (16252 ms)
+  [passed] (Administrator-SokolovMI) Отражение заправок топлива (65238 ms)
+  [passed] (Administrator-SokolovMI) Ввод взвешивания НВ00-000016 (17267 ms)
+  [passed] (Administrator-SokolovMI) Ввод взвешивания НВ00-000018 (18300 ms)
+  [passed] (Administrator-SokolovMI) Ввод и проведение заправочной ведомости НВ00-000001 (8323 ms)
+  [neg-passed] (ApkScenTest-Negativ1) Негатив - запись путевого листа без прав (26015 ms)
