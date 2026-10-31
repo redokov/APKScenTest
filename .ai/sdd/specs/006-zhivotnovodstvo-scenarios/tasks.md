@@ -2,7 +2,7 @@
 
 > Requirements: @requirements.md
 > Design: @design.md
-> Status: **Draft** (ждёт утверждения пользователя)
+> Status: **approved** (2026-10-31, «делай» — план T1–T7 утверждён, старт T1)
 
 ## Requirement Coverage
 
