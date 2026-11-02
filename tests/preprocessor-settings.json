@@ -13,7 +13,7 @@
  "runsBaseDir": "tests",
  "adminUser": "Администратор (ОрловАВ)",
  "adminPassword": "",
- "timeoutMinutesPerBatch": 10,
+ "timeoutMinutesPerBatch": 25,
  "portBase": 48500,
  "maxTabularRows": 3
 }

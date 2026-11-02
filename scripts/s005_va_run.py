@@ -53,6 +53,10 @@ def main():
         "ИспользоватьКомпонентуVanessaExt": "Истина",
         "ИспользоватьUIAutomation": "Истина",
         "ЭмулироватьДвиженияМышкиVanessaExt": "Ложь",
+        # TestClient cold start after RestoreIB can exceed VA's default 25
+        # connect attempts (~118s, s009 E2E#3 FAIL/CONNECT); wait up to 300s
+        # (same value as t6_diag_va.py).
+        "ТаймаутЗапуска1С": "300",
         "ЗавершитьРаботуСистемы": "Истина",
         "ЗакрытьTestClientПослеЗапускаСценариев": "Истина",
         "ДелатьЛогВыполненияСценариевВТекстовыйФайл": "Истина",

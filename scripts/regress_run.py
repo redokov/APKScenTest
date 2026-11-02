@@ -36,8 +36,9 @@ WEB_URL_DEFAULT = "http://localhost:9093/dev_erpapk_demo"
 # открытие 19.10: фоновое задание базы держало блокировку — дамп не
 # получил эксклюзив за 900 с). Кластер/ИБ демо-базы фиксированы.
 RAC = r"C:\Program Files\1cv8\8.5.4.1683\bin\rac.exe"
+RAC_ADDR = "127.0.0.1:1545"  # s011: резолв localhost сломан (hosts пуст), rac - только явный адрес
 RAC_CLUSTER = "67cdef87-7bfc-4dae-b8e4-3ea9f8529156"
-RAC_INFOBASE = "4d9168e8-f640-490f-bbe6-32b1df12991f"  # dev_erpapk_demo
+RAC_INFOBASE = "cd6af3f6-9740-4d96-97bc-5c5f3a454bec"  # dev_erpapk_demo (новый UUID после пересоздания ИБ)
 RUNS_DIR = os.path.join(ROOT, "tests")
 BASELINE = os.path.join(ROOT, "tests", "baseline", "baseline.json")
 # s004: отдельный baseline режима реальных авторов (статусы neg-*
@@ -199,7 +200,7 @@ def rac_jobs_deny_get():
     """Текущее значение scheduled-jobs-deny ИБ ('on'/'off'/None)."""
     try:
         out = subprocess.run(
-            [RAC, "infobase", "info", "--cluster=" + RAC_CLUSTER,
+            [RAC, RAC_ADDR, "infobase", "info", "--cluster=" + RAC_CLUSTER,
              "--infobase=" + RAC_INFOBASE],
             capture_output=True, timeout=60).stdout
     except Exception as e:
@@ -215,7 +216,7 @@ def rac_jobs_deny_set(on):
     """Установить scheduled-jobs-deny=on/off. Возвращает ok."""
     try:
         rc = subprocess.run(
-            [RAC, "infobase", "update", "--cluster=" + RAC_CLUSTER,
+            [RAC, RAC_ADDR, "infobase", "update", "--cluster=" + RAC_CLUSTER,
              "--infobase=" + RAC_INFOBASE,
              "--scheduled-jobs-deny=" + ("on" if on else "off")],
             capture_output=True, timeout=60)
@@ -238,7 +239,7 @@ def rac_sessions_deny_set(on, msg=""):
     """
     try:
         rc = subprocess.run(
-            [RAC, "infobase", "update", "--cluster=" + RAC_CLUSTER,
+            [RAC, RAC_ADDR, "infobase", "update", "--cluster=" + RAC_CLUSTER,
              "--infobase=" + RAC_INFOBASE,
              "--sessions-deny=" + ("on" if on else "off"),
              "--denied-message=" + msg],
@@ -287,7 +288,7 @@ def rac_ib_sessions_terminate():
     ИБ ПОСЛЕ попытки (0 = чисто)."""
     try:
         out = subprocess.run(
-            [RAC, "session", "list", "--cluster=" + RAC_CLUSTER],
+            [RAC, RAC_ADDR, "session", "list", "--cluster=" + RAC_CLUSTER],
             capture_output=True, timeout=60)
     except Exception as e:
         log("   rac session list FAIL: %s" % str(e)[:150])
@@ -311,14 +312,14 @@ def rac_ib_sessions_terminate():
         sids.append((fields["session"], fields.get("app-id", "")))
     for sid, app in sids:
         r = subprocess.run(
-            [RAC, "session", "terminate", "--cluster=" + RAC_CLUSTER,
+            [RAC, RAC_ADDR, "session", "terminate", "--cluster=" + RAC_CLUSTER,
              "--session=" + sid], capture_output=True, timeout=30)
         if r.returncode != 0:
             log("   session terminate %s (%s) FAIL rc=%s"
                 % (sid, app, r.returncode))
     # перепроверка
     out2 = subprocess.run(
-        [RAC, "session", "list", "--cluster=" + RAC_CLUSTER],
+        [RAC, RAC_ADDR, "session", "list", "--cluster=" + RAC_CLUSTER],
         capture_output=True, timeout=60)
     txt2 = out2.stdout.decode("cp866", errors="replace").replace("\r\n", "\n")
     alive = 0

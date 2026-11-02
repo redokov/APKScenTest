@@ -29,6 +29,21 @@
 				<CommandName>Form.Command.ЗафиксироватьЭталон</CommandName>
 				<ExtendedTooltip name="ЗафиксироватьЭталонРасширеннаяПодсказка" id="10"/>
 			</Button>
+			<Button name="ОбновитьПлан" id="97">
+				<Type>CommandBarButton</Type>
+				<CommandName>Form.Command.ОбновитьПлан</CommandName>
+				<ExtendedTooltip name="ОбновитьПланРасширеннаяПодсказка" id="98"/>
+			</Button>
+			<Button name="ВключитьВыделенные" id="99">
+				<Type>CommandBarButton</Type>
+				<CommandName>Form.Command.ВключитьВыделенные</CommandName>
+				<ExtendedTooltip name="ВключитьВыделенныеРасширеннаяПодсказка" id="100"/>
+			</Button>
+			<Button name="ИсключитьВыделенные" id="101">
+				<Type>CommandBarButton</Type>
+				<CommandName>Form.Command.ИсключитьВыделенные</CommandName>
+				<ExtendedTooltip name="ИсключитьВыделенныеРасширеннаяПодсказка" id="102"/>
+			</Button>
 		</ChildItems>
 	</AutoCommandBar>
 	<Events>
@@ -53,6 +68,107 @@
 			<ContextMenu name="ПутьBaselineКонтекстноеМеню" id="18"/>
 			<ExtendedTooltip name="ПутьBaselineРасширеннаяПодсказка" id="19"/>
 		</InputField>
+		<CheckBoxField name="КонтурыРастениеводство" id="60">
+			<DataPath>КонтурыРастениеводство</DataPath>
+			<CheckBoxListType>Neither</CheckBoxListType>
+			<ContextMenu name="КонтурыРастениеводствоКонтекстноеМеню" id="61"/>
+			<ExtendedTooltip name="КонтурыРастениеводствоРасширеннаяПодсказка" id="62"/>
+		</CheckBoxField>
+		<CheckBoxField name="КонтурыСвиноводство" id="63">
+			<DataPath>КонтурыСвиноводство</DataPath>
+			<CheckBoxListType>Neither</CheckBoxListType>
+			<ContextMenu name="КонтурыСвиноводствоКонтекстноеМеню" id="64"/>
+			<ExtendedTooltip name="КонтурыСвиноводствоРасширеннаяПодсказка" id="65"/>
+		</CheckBoxField>
+		<CheckBoxField name="КонтурыКРС" id="66">
+			<DataPath>КонтурыКРС</DataPath>
+			<CheckBoxListType>Neither</CheckBoxListType>
+			<ContextMenu name="КонтурыКРСКонтекстноеМеню" id="67"/>
+			<ExtendedTooltip name="КонтурыКРСРасширеннаяПодсказка" id="68"/>
+		</CheckBoxField>
+		<Table name="ТаблицаПланаПрогона" id="69">
+			<Representation>List</Representation>
+			<CommandBarLocation>None</CommandBarLocation>
+			<ReadOnly>true</ReadOnly>
+			<SkipOnInput>false</SkipOnInput>
+			<MultiSelect>true</MultiSelect>
+			<AutoInsertNewRow>true</AutoInsertNewRow>
+			<EnableStartDrag>true</EnableStartDrag>
+			<EnableDrag>true</EnableDrag>
+			<FileDragMode>AsFile</FileDragMode>
+			<DataPath>ПланПрогона</DataPath>
+			<SearchStringLocation>None</SearchStringLocation>
+			<ViewStatusLocation>None</ViewStatusLocation>
+			<SearchControlLocation>None</SearchControlLocation>
+			<RowFilter xsi:nil="true"/>
+			<ContextMenu name="ТаблицаПланаПрогонаКонтекстноеМеню" id="70"/>
+			<AutoCommandBar name="ТаблицаПланаПрогонаКоманднаяПанель" id="71"/>
+			<ExtendedTooltip name="ТаблицаПланаПрогонаРасширеннаяПодсказка" id="72"/>
+			<SearchStringAddition name="ТаблицаПланаПрогонаСтрокаПоиска" id="73">
+				<AdditionSource>
+					<Item>ТаблицаПланаПрогона</Item>
+					<Type>SearchStringRepresentation</Type>
+				</AdditionSource>
+				<ContextMenu name="ТаблицаПланаПрогонаСтрокаПоискаКонтекстноеМеню" id="74"/>
+				<ExtendedTooltip name="ТаблицаПланаПрогонаСтрокаПоискаРасширеннаяПодсказка" id="75"/>
+			</SearchStringAddition>
+			<ViewStatusAddition name="ТаблицаПланаПрогонаСостояние" id="76">
+				<AdditionSource>
+					<Item>ТаблицаПланаПрогона</Item>
+					<Type>ViewStatusRepresentation</Type>
+				</AdditionSource>
+				<ContextMenu name="ТаблицаПланаПрогонаСостояниеКонтекстноеМеню" id="77"/>
+				<ExtendedTooltip name="ТаблицаПланаПрогонаСостояниеРасширеннаяПодсказка" id="78"/>
+			</ViewStatusAddition>
+			<SearchControlAddition name="ТаблицаПланаПрогонаПоиск" id="79">
+				<AdditionSource>
+					<Item>ТаблицаПланаПрогона</Item>
+					<Type>SearchControl</Type>
+				</AdditionSource>
+				<ContextMenu name="ТаблицаПланаПрогонаПоискКонтекстноеМеню" id="80"/>
+				<ExtendedTooltip name="ТаблицаПланаПрогонаПоискРасширеннаяПодсказка" id="81"/>
+			</SearchControlAddition>
+			<ChildItems>
+				<InputField name="ПланПрогонаКонтур" id="82">
+				<DataPath>ПланПрогона.Контур</DataPath>
+				<EditMode>EnterOnInput</EditMode>
+				<ContextMenu name="ПланПрогонаКонтурКонтекстноеМеню" id="83"/>
+				<ExtendedTooltip name="ПланПрогонаКонтурРасширеннаяПодсказка" id="84"/>
+				</InputField>
+				<InputField name="ПланПрогонаШаблон" id="85">
+				<DataPath>ПланПрогона.Шаблон</DataPath>
+				<EditMode>EnterOnInput</EditMode>
+				<ContextMenu name="ПланПрогонаШаблонКонтекстноеМеню" id="86"/>
+				<ExtendedTooltip name="ПланПрогонаШаблонРасширеннаяПодсказка" id="87"/>
+				</InputField>
+				<InputField name="ПланПрогонаФича" id="88">
+				<DataPath>ПланПрогона.Фича</DataPath>
+				<EditMode>EnterOnInput</EditMode>
+				<ContextMenu name="ПланПрогонаФичаКонтекстноеМеню" id="89"/>
+				<ExtendedTooltip name="ПланПрогонаФичаРасширеннаяПодсказка" id="90"/>
+				</InputField>
+				<InputField name="ПланПрогонаПользователь" id="91">
+				<DataPath>ПланПрогона.Пользователь</DataPath>
+				<EditMode>EnterOnInput</EditMode>
+				<ContextMenu name="ПланПрогонаПользовательКонтекстноеМеню" id="92"/>
+				<ExtendedTooltip name="ПланПрогонаПользовательРасширеннаяПодсказка" id="93"/>
+				</InputField>
+				<CheckBoxField name="ПланПрогонаНегативный" id="94">
+				<DataPath>ПланПрогона.Негативный</DataPath>
+				<EditMode>EnterOnInput</EditMode>
+				<CheckBoxListType>Neither</CheckBoxListType>
+				<ContextMenu name="ПланПрогонаНегативныйКонтекстноеМеню" id="95"/>
+				<ExtendedTooltip name="ПланПрогонаНегативныйРасширеннаяПодсказка" id="96"/>
+				</CheckBoxField>
+				<CheckBoxField name="ПланПрогонаВключён" id="103">
+				<DataPath>ПланПрогона.Включён</DataPath>
+				<EditMode>EnterOnInput</EditMode>
+				<CheckBoxListType>Neither</CheckBoxListType>
+				<ContextMenu name="ПланПрогонаВключёнКонтекстноеМеню" id="104"/>
+				<ExtendedTooltip name="ПланПрогонаВключёнРасширеннаяПодсказка" id="105"/>
+				</CheckBoxField>
+			</ChildItems>
+		</Table>
 		<InputField name="СтатусПрогона" id="20">
 			<DataPath>СтатусПрогона</DataPath>
 			<ReadOnly>true</ReadOnly>
@@ -338,6 +454,118 @@
 				</Column>
 			</Columns>
 		</Attribute>
+		<Attribute name="КонтурыРастениеводство" id="9">
+			<Title>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Контур: Растениеводство</v8:content>
+				</v8:item>
+			</Title>
+			<Type>
+				<v8:Type>xs:boolean</v8:Type>
+			</Type>
+		</Attribute>
+		<Attribute name="КонтурыСвиноводство" id="10">
+			<Title>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Контур: Свиноводство</v8:content>
+				</v8:item>
+			</Title>
+			<Type>
+				<v8:Type>xs:boolean</v8:Type>
+			</Type>
+		</Attribute>
+		<Attribute name="КонтурыКРС" id="11">
+			<Title>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Контур: КРС</v8:content>
+				</v8:item>
+			</Title>
+			<Type>
+				<v8:Type>xs:boolean</v8:Type>
+			</Type>
+		</Attribute>
+		<Attribute name="ПланПрогона" id="12">
+			<Title>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>План прогона (предпросмотр манифеста)</v8:content>
+				</v8:item>
+			</Title>
+			<Type>
+				<v8:Type>v8:ValueTable</v8:Type>
+			</Type>
+			<Columns>
+				<Column name="Контур" id="1">
+					<Title>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Контур</v8:content>
+						</v8:item>
+					</Title>
+					<Type>
+						<v8:Type>xs:string</v8:Type>
+					</Type>
+				</Column>
+				<Column name="Шаблон" id="2">
+					<Title>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Шаблон</v8:content>
+						</v8:item>
+					</Title>
+					<Type>
+						<v8:Type>xs:string</v8:Type>
+					</Type>
+				</Column>
+				<Column name="Фича" id="3">
+					<Title>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Фича</v8:content>
+						</v8:item>
+					</Title>
+					<Type>
+						<v8:Type>xs:string</v8:Type>
+					</Type>
+				</Column>
+				<Column name="Пользователь" id="4">
+					<Title>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Пользователь</v8:content>
+						</v8:item>
+					</Title>
+					<Type>
+						<v8:Type>xs:string</v8:Type>
+					</Type>
+				</Column>
+				<Column name="Негативный" id="5">
+					<Title>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Neg</v8:content>
+						</v8:item>
+					</Title>
+					<Type>
+						<v8:Type>xs:boolean</v8:Type>
+					</Type>
+				</Column>
+				<Column name="Включён" id="6">
+					<Title>
+						<v8:item>
+							<v8:lang>ru</v8:lang>
+							<v8:content>Включён</v8:content>
+						</v8:item>
+					</Title>
+					<Type>
+						<v8:Type>xs:boolean</v8:Type>
+					</Type>
+				</Column>
+			</Columns>
+		</Attribute>
 	</Attributes>
 	<Commands>
 		<Command name="ПодключитьПрепроцессор" id="1">
@@ -414,6 +642,51 @@
 				</v8:item>
 			</ToolTip>
 			<Action>ЗафиксироватьЭталон</Action>
+		</Command>
+		<Command name="ОбновитьПлан" id="6">
+			<Title>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Обновить план</v8:content>
+				</v8:item>
+			</Title>
+			<ToolTip>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Показать план прогона по манифесту (контур/включённость по флажкам и отключённым тестам) и сохранить выбор</v8:content>
+				</v8:item>
+			</ToolTip>
+			<Action>ОбновитьПлан</Action>
+		</Command>
+		<Command name="ВключитьВыделенные" id="7">
+			<Title>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Включить выделенные</v8:content>
+				</v8:item>
+			</Title>
+			<ToolTip>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Включить выделенные строки плана в прогон (и сохранить выбор)</v8:content>
+				</v8:item>
+			</ToolTip>
+			<Action>ВключитьВыделенные</Action>
+		</Command>
+		<Command name="ИсключитьВыделенные" id="8">
+			<Title>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Исключить выделенные</v8:content>
+				</v8:item>
+			</Title>
+			<ToolTip>
+				<v8:item>
+					<v8:lang>ru</v8:lang>
+					<v8:content>Исключить выделенные строки плана из прогона (и сохранить выбор)</v8:content>
+				</v8:item>
+			</ToolTip>
+			<Action>ИсключитьВыделенные</Action>
 		</Command>
 	</Commands>
 </Form>

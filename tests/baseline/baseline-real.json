@@ -1,103 +1,248 @@
 {
- "baselineOf": "run-20261028-062621",
- "createdAt": "2026-10-28T06:55:56",
- "totals": {
-  "batches": 3,
-  "scenarios": 17,
-  "passed": 16,
-  "failed": 0,
-  "broken": 0,
-  "timeout": 0,
-  "unknown": 0,
-  "negativePassed": 1,
-  "negativeFailed": 0
- },
- "scenarios": [
-  {
-   "scenario": "(Administrator-OrlovAV) Подключение TestClient и закрытие окон",
-   "user": "Администратор (ОрловАВ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-OrlovAV) Ввод и проведение путевого листа автотранспорта НВ00-000009",
-   "user": "Администратор (ОрловАВ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-OrlovAV) Ввод и проведение путевого листа автотранспорта НВЦБ-000002",
-   "user": "Администратор (ОрловАВ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-OrlovAV) Ввод и проведение путевого листа автотранспорта НВ00-000004",
-   "user": "Администратор (ОрловАВ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-OrlovAV) Ввод и проведение путевого листа тракториста НВ00-000001",
-   "user": "Администратор (ОрловАВ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-OrlovAV) Отражение выработки сотрудников",
-   "user": "Администратор (ОрловАВ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-OrlovAV) Отражение расхода топлива",
-   "user": "Администратор (ОрловАВ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-OrlovAV) Ввод взвешивания НВ00-000003",
-   "user": "Администратор (ОрловАВ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-OrlovAV) Ввод и проведение наряда на сдельную работу НВЦБ-000001",
-   "user": "Администратор (ОрловАВ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-SokolovMI) Ввод и проведение заправочной ведомости НВ00-000001",
-   "user": "Администратор (СоколовМИ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-SokolovMI) Ввод взвешивания НВ00-000018",
-   "user": "Администратор (СоколовМИ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-SokolovMI) Ввод взвешивания НВ00-000016",
-   "user": "Администратор (СоколовМИ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-SokolovMI) Отражение заправок топлива",
-   "user": "Администратор (СоколовМИ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-SokolovMI) Ввод взвешивания НВ00-000014",
-   "user": "Администратор (СоколовМИ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-SokolovMI) Подключение TestClient и закрытие окон",
-   "user": "Администратор (СоколовМИ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(Administrator-SokolovMI) Ввод взвешивания НВ00-000017",
-   "user": "Администратор (СоколовМИ)",
-   "status": "passed"
-  },
-  {
-   "scenario": "(ApkScenTest-Negativ1) Негатив - запись путевого листа без прав",
-   "user": "АпкСценТест_Негатив1",
-   "status": "neg-passed"
-  }
- ],
- "runDir": "tests/run-20261028-062621"
+"baselineOf": "run-20261102-034905",
+"createdAt": "2026-11-02T05:15:22",
+"totals": {
+"batches": 4,
+"scenarios": 46,
+"passed": 45,
+"failed": 0,
+"broken": 0,
+"timeout": 0,
+"unknown": 0,
+"negativePassed": 1,
+"negativeFailed": 0
+},
+"scenarios": [
+{
+"scenario": "(Administrator-SokolovMI) Ввод взвешивания НВ00-000014",
+"user": "Администратор (СоколовМИ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-SokolovMI) Подключение TestClient и закрытие окон",
+"user": "Администратор (СоколовМИ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-SokolovMI) Ввод взвешивания НВ00-000017",
+"user": "Администратор (СоколовМИ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-SokolovMI) Ввод и проведение заправочной ведомости НВ00-000001",
+"user": "Администратор (СоколовМИ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-SokolovMI) Отражение заправок топлива",
+"user": "Администратор (СоколовМИ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-SokolovMI) Ввод взвешивания НВ00-000018",
+"user": "Администратор (СоколовМИ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-SokolovMI) Ввод взвешивания НВ00-000016",
+"user": "Администратор (СоколовМИ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-FedorovBM) Групповой перевод (КРС) НВ00-000002",
+"user": "Администратор (ФедоровБМ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-FedorovBM) Групповой перевод (КРС) НВ00-000001",
+"user": "Администратор (ФедоровБМ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-FedorovBM) Групповой учетный лист движения животных (КРС) НВ00-000001",
+"user": "Администратор (ФедоровБМ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-FedorovBM) Внутренний расход молока НВ00-000001",
+"user": "Администратор (ФедоровБМ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-FedorovBM) Групповое поступление животных (КРС) НВ00-000007",
+"user": "Администратор (ФедоровБМ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-FedorovBM) Товарно-транспортная накладная (молсырьё) НВ00-000001",
+"user": "Администратор (ФедоровБМ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-FedorovBM) Групповое поступление животных (КРС) НВ00-000001",
+"user": "Администратор (ФедоровБМ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-FedorovBM) Журнал надоя молока НВ00-000001",
+"user": "Администратор (ФедоровБМ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-FedorovBM) Подключение TestClient и закрытие окон",
+"user": "Администратор (ФедоровБМ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-FedorovBM) Групповой отёл (КРС) НВ00-000001",
+"user": "Администратор (ФедоровБМ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповое перемещение животных НВ00-000001",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповой перевод (КРС) НВ00-000003",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповой учетный лист движения животных (КРС) НВ00-000009",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Отражение выпуска услуг",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповой учетный лист движения животных НВ00-000003",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповое взвешивание животных (КРС) НВ00-000007",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповое поступление животных НВ00-000001 (истина)",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Внутренний расход молока НВ00-000004",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Ввод и проведение путевого листа автотранспорта НВЦБ-000002",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Ввод и проведение путевого листа автотранспорта НВ00-000004",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповой опорос НВ00-000003",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Ввод и проведение наряда на сдельную работу НВЦБ-000001",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповой учетный лист движения животных НВ00-000004",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповой учетный лист движения животных (КРС) НВ00-000007",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Подключение TestClient и закрытие окон",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Отражение расхода топлива",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповой падеж, забой НВ00-000001",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Отражение выработки сотрудников",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Ввод взвешивания НВ00-000003",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповое взвешивание животных НВ00-000006",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Ввод и проведение путевого листа тракториста НВ00-000001",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповой учетный лист движения животных НВ00-000005",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповое поступление животных НВ00-000001 (ложь)",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Ввод и проведение путевого листа автотранспорта НВ00-000009",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Отражение производства продукции растениеводства",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповой падеж, забой НВ00-000004",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Групповой учетный лист движения животных (КРС) НВ00-000006",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(Administrator-OrlovAV) Внутренний расход молока НВ00-000003",
+"user": "Администратор (ОрловАВ)",
+"status": "passed"
+},
+{
+"scenario": "(ApkScenTest-Negativ1) Негатив - запись путевого листа без прав",
+"user": "АпкСценТест_Негатив1",
+"status": "neg-passed"
+}
+],
+"runDir": "tests/run-20261102-034905"
 }

@@ -103,8 +103,9 @@ MANAGER_ROLES = NEED_ROLES + ["ИнтерактивноеОткрытиеВне�
 REAL_MODE = "--real-authors" in sys.argv
 GUARD_DIR = os.path.join(ROOT, "tests", "pwd-guard")
 RAC = r"C:\Program Files\1cv8\8.5.4.1683\bin\rac.exe"
+RAC_ADDR = "127.0.0.1:1545"  # s011: резолв localhost сломан (hosts пуст), rac - только явный адрес
 RAC_CLUSTER = "67cdef87-7bfc-4dae-b8e4-3ea9f8529156"
-RAC_INFOBASE = "4d9168e8-f640-490f-bbe6-32b1df12991f"  # dev_erpapk_demo
+RAC_INFOBASE = "cd6af3f6-9740-4d96-97bc-5c5f3a454bec"  # dev_erpapk_demo (новый UUID после пересоздания ИБ)
 
 log_lines = []
 
@@ -399,7 +400,7 @@ def rac_sessions_online(exclude_app_ids=("RAS",)):
     Возвращает (список_строк_описаний, код_ошибки|None).
     """
     try:
-        out = subprocess.run([RAC, "session", "list", "--cluster=" + RAC_CLUSTER],
+        out = subprocess.run([RAC, RAC_ADDR, "session", "list", "--cluster=" + RAC_CLUSTER],
                              capture_output=True, timeout=60)
     except Exception as e:
         return None, "rac недоступен: %s" % str(e)[:150]
@@ -447,7 +448,7 @@ def rac_terminate_ib_sessions(only_user=None, app_ids=("1CV8",)):
     COM-соединения (гейт) не трогаем. only_user - фильтр по имени.
     Возвращает количество терминированных.
     """
-    out = subprocess.run([RAC, "session", "list", "--cluster=" + RAC_CLUSTER],
+    out = subprocess.run([RAC, RAC_ADDR, "session", "list", "--cluster=" + RAC_CLUSTER],
                          capture_output=True, timeout=60)
     # 21.10: rac-вывод в CRLF - без нормализации весь список = один блок
     # (терминировался только последний сеанс)
@@ -465,7 +466,7 @@ def rac_terminate_ib_sessions(only_user=None, app_ids=("1CV8",)):
             continue
         suuid = f.get("session", "")
         if suuid:
-            r = subprocess.run([RAC, "session", "terminate",
+            r = subprocess.run([RAC, RAC_ADDR, "session", "terminate",
                                 "--cluster=" + RAC_CLUSTER,
                                 "--session=" + suuid], capture_output=True, timeout=30)
             if r.returncode == 0:
@@ -644,9 +645,15 @@ SCENARIO_PATCHES = {
               u'\tИ в таблице "Список" я перехожу к строке по шаблону',
               u"\t\t| 'Номер' |",
               u"\t\t| '*000017*' |",
-              u'\tИ Пауза 1',
+              u'\tИ Пауза 2',
               u'\tИ я нажимаю сочетание клавиш "ENTER"',
-              u'\tИ Пауза 2')),
+              u'\tИ Пауза 3',
+              # s009: шаг-гейт активного окна вместо слепой паузы - ENTER
+              # в ФормеВыбора флейкит (E2E#3: активной осталась форма
+              # выбора, поле ПервоеВзвешиваниеАвтомобиля не найдено);
+              # шаблон ед. числа НЕ матчит титул формы выбора (мн. число,
+              # родительный падеж) - ждём именно форму документа.
+              u'\tТогда открылось окно "Регистрация взвешивания на току*"')),
             # ВВ в порядке фикстуры (Первое=2000, Второе=7000; v24)
             ("replace",
              u'в поле с именем "ПервоеВзвешиваниеАвтомобиля" я ввожу текст "7000"',
