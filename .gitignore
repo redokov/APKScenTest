@@ -31,6 +31,8 @@ heartbeat/
 # --- OS ---
 Thumbs.db
 Desktop.ini
+# --- Remotion (doc images) ---
+node_modules/
 # --- VanessaExt binaries (не нужны: компонента встроена в single-epf) ---
 vendor/
 # --- pi agent local state ---
