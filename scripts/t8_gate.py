@@ -391,12 +391,12 @@ def kill_tree(pid):
 
 # --- s004: режим реальных авторов -------------------------------------
 
-def rac_sessions_online(exclude_app_ids=("RAS",)):
+def rac_sessions_online(exclude_app_ids=("RAS", "BackgroundJob")):
     """Онлайн-сеансы на dev_erpapk_demo (FR-003, exit 2 у вызывающего).
 
     exclude_app_ids - app-id, НЕ считающиеся блокирующими (префлайт:
-    только RAS-служба; пост-Stage-A рубеж: + COMConnection гейта и
-    умирающие с пустым app-id).
+    RAS-служба + BackgroundJob (s014); пост-Stage-A рубеж: + COMConnection
+    гейта и умирающие с пустым app-id).
     Возвращает (список_строк_описаний, код_ошибки|None).
     """
     try:
@@ -1107,7 +1107,14 @@ def main():
             log("[preflight] см. docs/runbook.md § восстановление")
             io.open(GATE_LOG, "w", encoding="utf-8").write("\n".join(log_lines))
             sys.exit(2)
-        sessions, rac_err = rac_sessions_online()
+        # s014 (решение принято 03.11.2026): фоновые задания восстановленной
+        # ИБ держат сессии DefUser (BackgroundJob) постоянно. Они не держат
+        # пользователей/пароли, их нельзя убивать (урок 21.10: kill активного
+        # BackgroundJob вешает старт клиента) - исключены из префлайта, как
+        # RAS-служба. Ранее решалось запретом регл. заданий на весь прогон
+        # (jobs_deny=True); оба варианта дают зелёный E2E (s011 vs s012/s013).
+        sessions, rac_err = rac_sessions_online(
+            exclude_app_ids=("RAS", "BackgroundJob"))
         if rac_err:
             log("[preflight] FAIL: %s" % rac_err)
             io.open(GATE_LOG, "w", encoding="utf-8").write("\n".join(log_lines))

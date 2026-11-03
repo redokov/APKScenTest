@@ -56,9 +56,11 @@ Baseline: `tests/baseline/baseline-real.json` (46 ключей, run-20261102-
 1. **Web-режим**: нет публикации `dev_erpapk_demo`. Требования:
    wsap24.dll от 8.5.4.1683, `Listen 9094`, Alias `/dev_erpapk_demo`,
    сверить `WEB_URL_DEFAULT` (9093) vs конфиг (9094).
-2. **Фоновые DefUser (BackgroundJob) сессии** после restore при jobs_deny=False:
-   вариант (а) `jobs_deny=True` на время прогонов (де-факто, с012/с013)
-   или (б) `exclude_app_ids` + `BackgroundJob` в префлайте t8_gate.py.
+2. **Фоновые DefUser (BackgroundJob) сессии** после restore:
+   решено в s014 — префлайт `t8_gate.py` исключает `BackgroundJob`
+   (как `RAS`); их нельзя убивать (урок 21.10: kill вешает старт
+   клиента). Ранее решалось запретом регл. заданий (`jobs_deny=True`)
+   на прогон; оба варианта дают зелёный E2E (s011 vs s012/s013).
 
 ## Бэклог (не в работе без явной санкции)
 
