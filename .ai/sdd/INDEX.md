@@ -36,7 +36,7 @@
 
 ## Handoff
 
-- `.ai/sdd/handoff/sdd-brief.md`: обновлён 2026-10-15 (ключевые решения реализации, ограничения E2E, кандидаты в спеку 002)
+- `.ai/sdd/handoff/sdd-brief.md`: обновлён 03.11.2026 (текущее состояние, recipes proгона, блокеры)
 
 ## Next Actions
 
