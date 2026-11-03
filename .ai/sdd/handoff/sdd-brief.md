@@ -67,6 +67,16 @@ Baseline: `tests/baseline/baseline-real.json` (46 ключей, run-20261102-
 - планирование; arm-fuel-expense для авто-ПЛ (ждёт ТС со складом бака —
   `when: never`); разведка «главы 2 АПК» по желанию.
 
+## Проверка / запуск (dev-time)
+
+- `python tests/test_user_orphans.py` — безопасность чистки сирот;
+- `python tests/test_rac_sessions_filter.py` — семантика префлайта
+  `t8_gate.rac_sessions_online` (BackgroundJob игнорируется, интерактивные
+  сеансы блокируют — с014).
+- BSL: `mcp__bsl_ls` bsl_analyze (0 Error) → `epf-build`; python:
+  `ast.parse`; E2E: только main-агент, эксклюзивно, `--baseline-dt`,
+  RestoreIB detached, не убивать <3000 c.
+
 ## Улики
 
 - night-reports: `docs/night-report-2026-10-15.md`…`night-report-2026-11-03-
