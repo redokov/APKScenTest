@@ -1,10 +1,11 @@
 {
  "version": 1,
- "comment": "T8 E2E: настройки прогона (порт-база 48500 — изоляция от T6-портов).",
+ "comment": "Настройки прогона. Пути относительные — резолвятся от каталога комплекта (каталога запуска клиента 1С). Абсолютным оставлен только v8cPath: это путь к установленной платформе, а не к комплекту.",
  "infoBase": "Srvr=\"localhost\";Ref=\"dev_erpapk_demo\"",
  "v8cPath": "C:\\Program Files\\1cv8\\8.5.4.1683\\bin\\1cv8c.exe",
- "vaEpfPath": "C:\\MyProjects\\APKTechPlan\\tests\\vanessa\\vanessa-automation-single.epf",
- "projectDir": "C:\\MyProjects\\APKScenTest",
+ "vaEpfPath": "dist/vanessa-automation-single.epf",
+ "projectDir": ".",
+ "baselinePath": "tests/baseline/baseline-real.json",
  "templatesDir": "tests/templates",
  "smokeTemplate": "00-smoke",
  "negUser": "АпкСценТест_Негатив1",
@@ -15,5 +16,6 @@
  "adminPassword": "",
  "timeoutMinutesPerBatch": 25,
  "portBase": 48500,
- "maxTabularRows": 3
+ "maxTabularRows": 3,
+ "vaparamsTTLHours": 24
 }
