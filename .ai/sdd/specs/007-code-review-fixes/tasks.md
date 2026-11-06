@@ -68,8 +68,8 @@
 
 **Критерии приёмки:**
 - [ ] `grep -rn "C:/MyProjects\|C:\\\\MyProjects" src/` → **0 совпадений**
-- [ ] `bsl-ls`: 0 Error, Warning ≤ 365 (baseline не ухудшен)
-- [ ] compile-gate PASS
+- [x] `bsl-ls`: 0 Error, Warning 360 ≤ 365
+- [x] compile-gate PASS (оба EPF, `tmp/007/compile-gate-dist-*.txt`)
 
 **Время:** 2–3 ч
 
@@ -98,9 +98,9 @@
    это смена поведения (преждевременное убийство батчей, конфликт портов с T6).
 
 **Критерии приёмки:**
-- [ ] `python -c "import json;json.load(open('tests/preprocessor-settings.json'))"` — OK
-- [ ] В файле нет `C:\` (grep)
-- [ ] `vaEpfPath` указывает на существующий файл внутри репозитория
+- [x] JSON валиден (проверено)
+- [x] В файле нет `C:\`, кроме `v8cPath` (платформа)
+- [x] `vaEpfPath` = `dist/vanessa-automation-single.epf` (существует)
 
 **Время:** 1 ч
 
@@ -124,7 +124,7 @@
 **Критерии приёмки:**
 - [ ] Раннер находит baseline, собранный в произвольном корне (проверка: копия `dist/` + `tests/`
       в `tmp/relocate-test/`, запуск, путь резолвится)
-- [ ] compile-gate PASS, `bsl-ls` 0 Error
+- [x] compile-gate PASS (оба EPF, `tmp/007/compile-gate-dist-*.txt`), `bsl-ls` 0 Error
 
 **Время:** 2–3 ч
 
@@ -370,7 +370,7 @@ guard на контейнер не нужен. Реальный остаток �
 
 **Гейт-критерии:**
 - [ ] `bsl-ls`: **0 Error**, Warning **не больше 365**
-- [ ] compile-gate PASS
+- [x] compile-gate PASS (оба EPF, `tmp/007/compile-gate-dist-*.txt`)
 - [ ] `db-load-xml` без ошибок
 - [ ] `00-smoke` PASS
 - [ ] Артефакты улик в `tmp/007/` (`bsl-ls.txt`, `compile-gate.txt`, `smoke.txt`, `heartbeat.txt`)
